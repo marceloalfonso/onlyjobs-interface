@@ -35,7 +35,7 @@ async function getUser(token: string) {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
       headers: {
-        Authorization: `${token}`,
+        Authorization: token,
       },
     });
 
@@ -112,7 +112,7 @@ export const SignInForm = () => {
       setError(
         err instanceof Error
           ? err.message
-          : 'Invalid email or password. Please try again.'
+          : 'E-mail ou senha inválidos. Tente novamente.'
       );
     } finally {
       setIsLoading(false);

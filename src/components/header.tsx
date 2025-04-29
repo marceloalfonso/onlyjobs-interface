@@ -1,14 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 export const Header = () => {
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  function isCurrentPath(path: string) {
+    return pathname === path;
+  }
 
   function toggleMobileMenu() {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   }
+
+  const activeLinkClass = 'flex items-center gap-2 text-blue-600';
+  const inactiveLinkClass =
+    'flex items-center gap-2 text-gray-600 hover:text-blue-600';
 
   return (
     <nav className='bg-white shadow-sm fixed w-full top-0 z-[100] h-16'>
@@ -21,7 +31,12 @@ export const Header = () => {
           </div>
 
           <div className='items-center hidden gap-10 md:flex'>
-            <Link href='/' className='flex items-center gap-2 text-blue-600'>
+            <Link
+              href='/'
+              className={
+                isCurrentPath('/') ? activeLinkClass : inactiveLinkClass
+              }
+            >
               <svg
                 xmlns='http://www.w3.org/2000/svg'
                 viewBox='0 0 24 24'
@@ -35,7 +50,9 @@ export const Header = () => {
             </Link>
             <Link
               href='/chats'
-              className='flex items-center gap-2 text-gray-600 hover:text-blue-600'
+              className={
+                isCurrentPath('/chats') ? activeLinkClass : inactiveLinkClass
+              }
             >
               <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -52,7 +69,9 @@ export const Header = () => {
             </Link>
             <Link
               href='/profile'
-              className='flex items-center gap-2 text-gray-600 hover:text-blue-600'
+              className={
+                isCurrentPath('/profile') ? activeLinkClass : inactiveLinkClass
+              }
             >
               <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -110,7 +129,9 @@ export const Header = () => {
           <div className='p-6 space-y-6'>
             <Link
               href='/'
-              className='flex items-center gap-2 text-blue-600'
+              className={
+                isCurrentPath('/') ? activeLinkClass : inactiveLinkClass
+              }
               onClick={toggleMobileMenu}
             >
               <svg
@@ -126,7 +147,9 @@ export const Header = () => {
             </Link>
             <Link
               href='/chats'
-              className='flex items-center gap-2 text-gray-600 hover:text-blue-600'
+              className={
+                isCurrentPath('/chats') ? activeLinkClass : inactiveLinkClass
+              }
               onClick={toggleMobileMenu}
             >
               <svg
@@ -147,7 +170,9 @@ export const Header = () => {
             </Link>
             <Link
               href='/profile'
-              className='flex items-center gap-2 text-gray-600 hover:text-blue-600'
+              className={
+                isCurrentPath('/profile') ? activeLinkClass : inactiveLinkClass
+              }
               onClick={toggleMobileMenu}
             >
               <svg

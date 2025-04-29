@@ -12,7 +12,7 @@ async function getNotLikedUsers(token: string) {
       `${process.env.NEXT_PUBLIC_API_URL}/users/not-liked`,
       {
         headers: {
-          Authorization: `${token}`,
+          Authorization: token,
         },
       }
     );
@@ -29,73 +29,60 @@ async function getNotLikedUsers(token: string) {
   }
 }
 
+async function sendLike(token: string, toUserId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/likes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: token,
+      },
+      body: JSON.stringify({ toUserId }),
+    });
+
+    const { message } = await response.json();
+
+    if (!response.ok) {
+      throw new Error(message);
+    }
+
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 export default function Home() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [token] = useState(() => {
-    if (typeof window === 'undefined') return '';
-
-    return (
-      localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-    );
-  });
-  const [user] = useState(() => {
-    if (typeof window === 'undefined') return '{}';
-
-    const storedUser =
-      localStorage.getItem('user') || sessionStorage.getItem('user') || '{}';
-
-    return JSON.parse(storedUser);
-  });
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [cardsData, setCardsData] = useState<CardData[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
-  async function sendLike(toUserId: string): Promise<boolean> {
+  async function handleAccept(cardId: string) {
+    if (!token) return;
+
     setIsLoading(true);
     setError('');
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/likes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `${token}`,
-        },
-        body: JSON.stringify({ toUserId }),
-      });
-
-      const { chatId, message } = await response.json();
-
-      if (!response.ok) {
-        throw new Error(message);
-      }
-
-      if (chatId) {
-        // Lógica caso um chat seja criado
-      }
-
-      return true;
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
-      );
-
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleAccept(cardId: string) {
     if (navigator.vibrate) {
       navigator.vibrate(100);
     }
 
-    const result = await sendLike(cardId);
+    try {
+      const result = await sendLike(token, cardId);
 
-    if (result) {
-      setCurrentCardIndex((prev) => prev + 1);
+      if (result) {
+        setCurrentCardIndex((prev) => prev + 1);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
+      );
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -113,6 +100,14 @@ export default function Home() {
       return;
     }
 
+    const storedToken =
+      localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const storedUser =
+      localStorage.getItem('user') || sessionStorage.getItem('user') || '{}';
+
+    setToken(storedToken);
+    setUser(JSON.parse(storedUser));
+
     setIsLoading(false);
   }, [router]);
 
@@ -120,65 +115,69 @@ export default function Home() {
     setIsLoading(true);
     setError('');
 
-    getNotLikedUsers(token)
-      .then((notLikedUsers) => {
-        if (notLikedUsers.length != 0) {
-          const formattedCardsData = notLikedUsers.map(
-            (notLikedUser: {
-              id: string;
-              name: string;
-              profile: Record<string, any>;
-            }) => {
-              if (user.role === 'CANDIDATE') {
-                const companyCardData = {
-                  id: notLikedUser.id,
-                  title: notLikedUser.name,
-                  company: notLikedUser.name || 'Empresa',
-                  stack: notLikedUser.profile.technologies || [],
-                  benefits: notLikedUser.profile.benefits || [
-                    'Plano de saúde',
-                    'Vale refeição',
-                  ],
-                  companySize:
-                    notLikedUser.profile.companySize || 'Não informado',
-                  workModel: notLikedUser.profile.workModel || 'Não informado',
-                  salary: notLikedUser.profile.salary || 'Não informado',
-                };
+    if (token) {
+      getNotLikedUsers(token)
+        .then((notLikedUsers) => {
+          if (notLikedUsers.length != 0) {
+            const formattedCardsData = notLikedUsers.map(
+              (notLikedUser: {
+                id: string;
+                name: string;
+                profile: Record<string, any>;
+              }) => {
+                if (user?.role === 'CANDIDATE') {
+                  const companyCardData = {
+                    id: notLikedUser.id,
+                    title: notLikedUser.name,
+                    company: notLikedUser.name || 'Empresa',
+                    stack: notLikedUser.profile.technologies || [],
+                    benefits: notLikedUser.profile.benefits || [
+                      'Plano de saúde',
+                      'Vale refeição',
+                    ],
+                    companySize:
+                      notLikedUser.profile.companySize || 'Não informado',
+                    workModel:
+                      notLikedUser.profile.workModel || 'Não informado',
+                    salary: notLikedUser.profile.salary || 'Não informado',
+                  };
 
-                return companyCardData;
-              } else {
-                const candidateCardData = {
-                  id: notLikedUser.id,
-                  title: notLikedUser.profile.title || notLikedUser.name,
-                  company: notLikedUser.name,
-                  stack: notLikedUser.profile.skills || [],
-                  benefits: ['Experiência relevante', 'Habilidades técnicas'],
-                  companySize:
-                    notLikedUser.profile.experience || 'Não informado',
-                  workModel:
-                    notLikedUser.profile.preferredWorkModel || 'Não informado',
-                  salary:
-                    notLikedUser.profile.expectedSalary || 'Não informado',
-                };
+                  return companyCardData;
+                } else {
+                  const candidateCardData = {
+                    id: notLikedUser.id,
+                    title: notLikedUser.profile.title || notLikedUser.name,
+                    company: notLikedUser.name,
+                    stack: notLikedUser.profile.skills || [],
+                    benefits: ['Experiência relevante', 'Habilidades técnicas'],
+                    companySize:
+                      notLikedUser.profile.experience || 'Não informado',
+                    workModel:
+                      notLikedUser.profile.preferredWorkModel ||
+                      'Não informado',
+                    salary:
+                      notLikedUser.profile.expectedSalary || 'Não informado',
+                  };
 
-                return candidateCardData;
+                  return candidateCardData;
+                }
               }
-            }
-          );
+            );
 
-          setCardsData(formattedCardsData.sort(() => Math.random() - 0.5));
-        } else {
-          setCardsData([]);
-        }
-      })
-      .catch((err) => {
-        setError(
-          err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
-        );
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+            setCardsData(formattedCardsData.sort(() => Math.random() - 0.5));
+          } else {
+            setCardsData([]);
+          }
+        })
+        .catch((err) => {
+          setError(
+            err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
+          );
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
   }, [router, token, user]);
 
   const currentCardData = cardsData[currentCardIndex];
@@ -228,7 +227,7 @@ export default function Home() {
           <div className='max-w-6xl mx-auto'>
             <div className='py-6 text-center sm:py-8 md:py-10'>
               <h1 className='mb-4 text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl lg:text-6xl'>
-                {user.role === 'CANDIDATE'
+                {user?.role === 'CANDIDATE'
                   ? 'Sua carreira dos sonhos está a um match de distância'
                   : 'Encontre os melhores talentos para sua empresa'}
               </h1>
@@ -263,13 +262,13 @@ export default function Home() {
                 <div className='p-6 text-center bg-white shadow-xl rounded-xl'>
                   <h3 className='mb-3 text-xl font-light text-gray-800'>
                     Você viu{' '}
-                    {user.role === 'CANDIDATE'
+                    {user?.role === 'CANDIDATE'
                       ? 'todas as vagas'
                       : 'todos os candidatos'}
                     !
                   </h3>
                   <p className='text-gray-600'>
-                    a Volte mais tarde para ver novas oportunidades
+                    Volte mais tarde para ver novas oportunidades
                   </p>
                 </div>
               ) : (
@@ -277,25 +276,53 @@ export default function Home() {
                   {currentCardData && (
                     <Card
                       data={currentCardData}
-                      userRole={user.role}
+                      userRole={user?.role}
                       onAccept={handleAccept}
                       onReject={handleReject}
                     />
                   )}
 
                   {currentCardIndex < cardsData.length && (
-                    <div className='flex justify-center gap-4 pb-4 mt-4'>
+                    <div className='flex justify-center gap-6 pb-4 mt-6'>
                       <button
                         onClick={() => handleReject()}
-                        className='p-3 text-red-400 transition-colors bg-white rounded-full shadow-lg hover:bg-red-50'
+                        className='p-4 text-white transition-transform bg-red-500 rounded-full shadow-lg hover:bg-red-600 active:scale-95 cursor-pointer'
+                        aria-label='Recusar'
                       >
-                        <i className='text-xl fas fa-times'></i>
+                        <svg
+                          xmlns='http://www.w3.org/2000/svg'
+                          className='w-6 h-6'
+                          fill='none'
+                          viewBox='0 0 24 24'
+                          stroke='currentColor'
+                        >
+                          <path
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth={2}
+                            d='M6 18L18 6M6 6l12 12'
+                          />
+                        </svg>
                       </button>
                       <button
                         onClick={() => handleAccept(currentCardData.id)}
-                        className='p-3 text-green-400 transition-colors bg-white rounded-full shadow-lg hover:bg-green-50'
+                        className='p-4 text-white transition-transform bg-green-500 rounded-full shadow-lg hover:bg-green-600 active:scale-95 cursor-pointer'
+                        aria-label='Aceitar'
                       >
-                        <i className='text-xl fas fa-check'></i>
+                        <svg
+                          xmlns='http://www.w3.org/2000/svg'
+                          className='w-6 h-6'
+                          fill='none'
+                          viewBox='0 0 24 24'
+                          stroke='currentColor'
+                        >
+                          <path
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth={2}
+                            d='M5 13l4 4L19 7'
+                          />
+                        </svg>
                       </button>
                     </div>
                   )}
