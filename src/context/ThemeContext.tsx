@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -16,13 +16,15 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
     // Verifica se há um tema salvo no localStorage
     const savedTheme = localStorage.getItem('theme') as Theme;
-    
+
     if (savedTheme) {
       setTheme(savedTheme);
       applyTheme(savedTheme);

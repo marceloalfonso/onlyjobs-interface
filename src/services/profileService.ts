@@ -1,24 +1,25 @@
 'use client';
 
-import { UserProfile } from '../utils/types';
 import { isUserSignedIn } from '../utils/auth';
+import { UserProfile } from '../utils/types';
 
 // Ajustando a URL base da API, verificando também o ambiente
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
 
 // Função auxiliar para depuração
 function debugAuthToken() {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const token =
+    localStorage.getItem('token') || sessionStorage.getItem('token');
   const user = localStorage.getItem('user') || sessionStorage.getItem('user');
-  
-  console.log('Auth Debug:', { 
-    hasToken: !!token, 
+
+  console.log('Auth Debug:', {
+    hasToken: !!token,
     tokenLength: token?.length,
     hasUser: !!user,
     isUserSignedIn: isUserSignedIn(),
-    apiUrl: API_URL
+    apiUrl: API_URL,
   });
-  
+
   return token;
 }
 
@@ -26,7 +27,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   try {
     // Debug de autenticação
     const token = debugAuthToken();
-    
+
     // Verifica se o usuário está autenticado
     if (!isUserSignedIn()) {
       throw new Error('Você precisa estar logado para acessar esta página');
@@ -44,18 +45,18 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       // Timeout de 5 segundos para a requisição
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       // Usando a rota correta /users
       const response = await fetch(`${API_URL}/users`, {
         headers: {
           // O backend espera o token diretamente sem o prefixo "Bearer "
-          'Authorization': token
+          Authorization: token,
         },
         // Incluindo credenciais para garantir que cookies sejam enviados
         credentials: 'include',
-        signal: controller.signal
+        signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
 
       console.log('Status da resposta:', response.status);
@@ -68,14 +69,16 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         }
 
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || `Erro ${response.status}: Falha ao buscar dados do perfil`;
+        const errorMessage =
+          errorData.message ||
+          `Erro ${response.status}: Falha ao buscar dados do perfil`;
         console.error('API Error:', errorMessage);
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
       console.log('Dados do perfil recebidos:', data);
-      
+
       // Adaptando o formato de dados da API para o formato esperado pela interface
       const profile: UserProfile = {
         id: data.id,
@@ -83,7 +86,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         email: data.email,
         phone: data.profile?.phone || '',
         role: data.role,
-        birthDate: data.profile?.birthDate ? new Date(data.profile.birthDate) : null,
+        birthDate: data.profile?.birthDate
+          ? new Date(data.profile.birthDate)
+          : null,
         avatarUrl: data.profile?.avatarUrl,
         skills: data.profile?.skills || [],
         // Outros campos podem ser adicionados conforme necessário
@@ -92,7 +97,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       return profile;
     } catch (fetchError: unknown) {
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('Tempo limite excedido ao conectar com o servidor. Verifique sua conexão.');
+        throw new Error(
+          'Tempo limite excedido ao conectar com o servidor. Verifique sua conexão.'
+        );
       }
       throw fetchError;
     }
@@ -102,7 +109,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   }
 }
 
-export async function updateUserProfile(userData: Partial<UserProfile>): Promise<boolean> {
+export async function updateUserProfile(
+  userData: Partial<UserProfile>
+): Promise<boolean> {
   try {
     // Verifica se o usuário está autenticado
     if (!isUserSignedIn()) {
@@ -110,7 +119,8 @@ export async function updateUserProfile(userData: Partial<UserProfile>): Promise
     }
 
     // Obtém o token do armazenamento
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token =
+      localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       return false;
     }
@@ -128,7 +138,7 @@ export async function updateUserProfile(userData: Partial<UserProfile>): Promise
       method: 'PUT',
       headers: {
         // O backend espera o token diretamente sem o prefixo "Bearer "
-        'Authorization': token,
+        Authorization: token,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(profileData),
@@ -145,7 +155,9 @@ export async function updateUserProfile(userData: Partial<UserProfile>): Promise
       }
 
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || `Erro ${response.status}: Falha ao atualizar perfil`;
+      const errorMessage =
+        errorData.message ||
+        `Erro ${response.status}: Falha ao atualizar perfil`;
       throw new Error(errorMessage);
     }
 
@@ -160,11 +172,14 @@ export async function uploadProfilePicture(file: File): Promise<string | null> {
   try {
     // Verifica se o usuário está autenticado
     if (!isUserSignedIn()) {
-      throw new Error('Você precisa estar logado para enviar uma foto de perfil');
+      throw new Error(
+        'Você precisa estar logado para enviar uma foto de perfil'
+      );
     }
 
     // Obtém o token do armazenamento
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token =
+      localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       return null;
     }
@@ -176,7 +191,7 @@ export async function uploadProfilePicture(file: File): Promise<string | null> {
       method: 'POST',
       headers: {
         // O backend espera o token diretamente sem o prefixo "Bearer "
-        'Authorization': token,
+        Authorization: token,
       },
       body: formData,
     });
@@ -209,7 +224,8 @@ export async function uploadResume(file: File): Promise<string | null> {
       throw new Error('Você precisa estar logado para enviar um currículo');
     }
 
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token =
+      localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       return null;
     }
@@ -221,7 +237,7 @@ export async function uploadResume(file: File): Promise<string | null> {
       method: 'POST',
       headers: {
         // O backend espera o token diretamente sem o prefixo "Bearer "
-        'Authorization': token,
+        Authorization: token,
       },
       body: formData,
     });
@@ -247,14 +263,17 @@ export async function uploadResume(file: File): Promise<string | null> {
   }
 }
 
-export async function uploadCertifications(files: File[]): Promise<string[] | null> {
+export async function uploadCertifications(
+  files: File[]
+): Promise<string[] | null> {
   try {
     // Verifica se o usuário está autenticado
     if (!isUserSignedIn()) {
       throw new Error('Você precisa estar logado para enviar certificações');
     }
 
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token =
+      localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) {
       return null;
     }
@@ -268,7 +287,7 @@ export async function uploadCertifications(files: File[]): Promise<string[] | nu
       method: 'POST',
       headers: {
         // O backend espera o token diretamente sem o prefixo "Bearer "
-        'Authorization': token,
+        Authorization: token,
       },
       body: formData,
     });

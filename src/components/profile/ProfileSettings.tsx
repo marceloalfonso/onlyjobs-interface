@@ -298,7 +298,7 @@ const ProfileSettings: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 pt-28 text-gray-900 transition-colors bg-gray-100 dark:bg-gray-900 dark:text-gray-100 sm:p-6 sm:pt-32">
+    <div className='min-h-screen p-4 pt-28 text-gray-900 transition-colors bg-gray-100 dark:bg-gray-900 dark:text-gray-100 sm:p-6 sm:pt-32'>
       <div className='max-w-6xl mx-auto'>
         <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
           {/* Left Column - User Profile & App Settings */}

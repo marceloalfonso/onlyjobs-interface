@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
 import { Skill } from '../../utils/types';
 
 interface SkillSelectorProps {
@@ -10,7 +10,11 @@ interface SkillSelectorProps {
   availableSkills: string[];
 }
 
-const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availableSkills }) => {
+const SkillSelector: React.FC<SkillSelectorProps> = ({
+  skills,
+  onChange,
+  availableSkills,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleAddSkill = (skillName: string) => {
@@ -19,7 +23,7 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availab
     const newSkill: Skill = {
       id: Math.random().toString(36).substr(2, 9),
       name: skillName,
-      isPriority: skills.length < 5 // Primeiras 5 habilidades são prioritárias
+      isPriority: skills.length < 5, // Primeiras 5 habilidades são prioritárias
     };
 
     onChange([...skills, newSkill]);
@@ -27,28 +31,28 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availab
   };
 
   const handleRemoveSkill = (skillId: string) => {
-    const newSkills = skills.filter(skill => skill.id !== skillId);
+    const newSkills = skills.filter((skill) => skill.id !== skillId);
     // Reajusta as prioridades após remover uma habilidade
     const updatedSkills = newSkills.map((skill, index) => ({
       ...skill,
-      isPriority: index < 5
+      isPriority: index < 5,
     }));
     onChange(updatedSkills);
   };
 
   const unusedSkills = availableSkills.filter(
-    skill => !skills.some(s => s.name === skill)
+    (skill) => !skills.some((s) => s.name === skill)
   );
 
   return (
-    <div className="mt-4">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    <div className='mt-4'>
+      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
         Habilidades
       </label>
-      
-      <div className="relative">
+
+      <div className='relative'>
         {/* Selected Skills */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className='flex flex-wrap gap-2 mb-2'>
           {skills.map((skill) => (
             <div
               key={skill.id}
@@ -60,9 +64,9 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availab
             >
               {skill.name}
               <button
-                type="button"
+                type='button'
                 onClick={() => handleRemoveSkill(skill.id)}
-                className="ml-1 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className='ml-1 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'
               >
                 <X size={14} />
               </button>
@@ -72,11 +76,11 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availab
 
         {/* Add Skill Button and Dropdown */}
         {unusedSkills.length > 0 && (
-          <div className="relative">
+          <div className='relative'>
             <button
-              type="button"
+              type='button'
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+              className='flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors'
             >
               <Plus size={18} />
               Adicionar Habilidade
@@ -84,13 +88,13 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({ skills, onChange, availab
 
             {/* Skills Dropdown */}
             {isOpen && (
-              <div className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+              <div className='absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700'>
                 {unusedSkills.map((skill) => (
                   <button
                     key={skill}
-                    type="button"
+                    type='button'
                     onClick={() => handleAddSkill(skill)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                    className='w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors first:rounded-t-lg last:rounded-b-lg'
                   >
                     {skill}
                   </button>
