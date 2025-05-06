@@ -84,7 +84,7 @@ export const SignUpForm = () => {
       return;
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
+        err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
       );
     } finally {
       setIsLoading(false);
@@ -94,7 +94,7 @@ export const SignUpForm = () => {
   const selectedRole = watch('role');
 
   return (
-    <div className='px-4 py-8 bg-white shadow sm:rounded-lg sm:px-10'>
+    <>
       {error && (
         <div className='p-4 mb-4 border-l-4 border-red-400 rounded bg-red-50'>
           <div className='flex'>
@@ -131,7 +131,7 @@ export const SignUpForm = () => {
               id='name'
               type='text'
               {...register('name')}
-              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-[#004aad] focus:border-[#004aad] sm:text-sm'
             />
             {errors.name && (
               <p className='mt-1 text-xs text-red-600'>{errors.name.message}</p>
@@ -153,7 +153,7 @@ export const SignUpForm = () => {
               {...register('email')}
               onKeyDown={blockSpaceKeyPress}
               onPaste={blockPasteWithSpaces}
-              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-[#004aad] focus:border-[#004aad] sm:text-sm'
             />
             {errors.email && (
               <p className='mt-1 text-xs text-red-600'>
@@ -177,7 +177,7 @@ export const SignUpForm = () => {
               {...register('password')}
               onKeyDown={blockSpaceKeyPress}
               onPaste={blockPasteWithSpaces}
-              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm'
+              className='block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-[#004aad] focus:border-[#004aad] sm:text-sm'
             />
             {errors.password && (
               <p className='mt-1 text-xs text-red-600'>
@@ -203,13 +203,13 @@ export const SignUpForm = () => {
                 }
                 className={`cursor-pointer border rounded-md p-4 text-center transition-colors ${
                   selectedRole === 'CANDIDATE'
-                    ? 'bg-indigo-100 border-indigo-400'
+                    ? 'bg-[#e6eeff] border-[#004aad]'
                     : 'border-gray-300 bg-white hover:bg-gray-50'
                 }`}
               >
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
-                  className='w-8 h-8 mx-auto text-indigo-600'
+                  className='w-8 h-8 mx-auto text-[#004aad]'
                   fill='none'
                   viewBox='0 0 24 24'
                   stroke='currentColor'
@@ -231,13 +231,13 @@ export const SignUpForm = () => {
                 }
                 className={`cursor-pointer border rounded-md p-4 text-center transition-colors ${
                   selectedRole === 'COMPANY'
-                    ? 'bg-indigo-100 border-indigo-400'
+                    ? 'bg-[#e6eeff] border-[#004aad]'
                     : 'border-gray-300 bg-white hover:bg-gray-50'
                 }`}
               >
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
-                  className='w-8 h-8 mx-auto text-indigo-600'
+                  className='w-8 h-8 mx-auto text-[#004aad]'
                   fill='none'
                   viewBox='0 0 24 24'
                   stroke='currentColor'
@@ -294,7 +294,7 @@ export const SignUpForm = () => {
           <button
             type='submit'
             disabled={isLoading}
-            className='flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm cursor-pointer hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-[#004aad] border border-transparent rounded-md shadow-sm cursor-pointer hover:bg-[#003b8a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#004aad] disabled:opacity-50 disabled:cursor-not-allowed'
           >
             {isLoading ? (
               <>
@@ -342,12 +342,12 @@ export const SignUpForm = () => {
         <div className='mt-6'>
           <Link
             href='/sign-in'
-            className='flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+            className='flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#004aad]'
           >
             Faça login
           </Link>
         </div>
       </div>
-    </div>
+    </>
   );
 };

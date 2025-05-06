@@ -79,7 +79,7 @@ export default function Home() {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
+        err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
       );
     } finally {
       setIsLoading(false);
@@ -171,7 +171,7 @@ export default function Home() {
         })
         .catch((err) => {
           setError(
-            err instanceof Error ? err.message : 'Ocorreu um erro inesperado'
+            err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
           );
         })
         .finally(() => {

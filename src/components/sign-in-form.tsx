@@ -158,7 +158,7 @@ export const SignInForm = () => {
             {...register('email')}
             onKeyDown={blockSpaceKeyPress}
             onPaste={blockPasteWithSpaces}
-            className='w-full px-3 py-2 text-base text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg md:px-4 md:py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+            className='w-full px-3 py-2 text-base text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg md:px-4 md:py-3 focus:ring-2 focus:ring-[#004aad] focus:border-[#004aad]'
           />
           {errors.email && (
             <p className='mt-1 text-xs text-red-600'>{errors.email.message}</p>
@@ -178,7 +178,7 @@ export const SignInForm = () => {
             {...register('password')}
             onKeyDown={blockSpaceKeyPress}
             onPaste={blockPasteWithSpaces}
-            className='w-full px-3 py-2 text-base text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg md:px-4 md:py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+            className='w-full px-3 py-2 text-base text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg md:px-4 md:py-3 focus:ring-2 focus:ring-[#004aad] focus:border-[#004aad]'
           />
           {errors.password && (
             <p className='mt-1 text-xs text-red-600'>
@@ -193,7 +193,7 @@ export const SignInForm = () => {
               id='rememberMe'
               type='checkbox'
               {...register('rememberMe')}
-              className='w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
+              className='w-4 h-4 text-[#004aad] border-gray-300 rounded focus:ring-[#004aad]'
             />
             <label htmlFor='rememberMe' className='ml-2 text-sm text-gray-700'>
               Lembrar de mim
@@ -203,7 +203,7 @@ export const SignInForm = () => {
           <div className='text-sm'>
             <Link
               href='#'
-              className='font-medium text-indigo-600 hover:text-indigo-500'
+              className='font-medium text-[#004aad] hover:text-[#003b8a]'
             >
               Esqueceu sua senha?
             </Link>
@@ -213,7 +213,7 @@ export const SignInForm = () => {
         <button
           type='submit'
           disabled={isLoading}
-          className='cursor-pointer w-full flex justify-center py-2.5 md:py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed'
+          className='cursor-pointer w-full flex justify-center py-2.5 md:py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-[#004aad] hover:bg-[#003b8a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#004aad] disabled:opacity-50 disabled:cursor-not-allowed'
         >
           {isLoading ? (
             <div className='flex items-center'>
@@ -250,7 +250,7 @@ export const SignInForm = () => {
           Ainda não tem uma conta?{' '}
           <Link
             href='/sign-up'
-            className='font-medium text-indigo-600 hover:text-indigo-500'
+            className='font-medium text-[#004aad] hover:text-[#003b8a]'
           >
             Cadastre-se
           </Link>

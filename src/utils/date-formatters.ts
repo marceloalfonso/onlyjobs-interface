@@ -83,7 +83,7 @@ export function formatTimestamp(
     return 'Ontem';
   } else if (
     new Date().getTime() - date.getTime() <
-    7 * 24 * 60 * 60 * 1000 /* 7 days  in milliseconds*/
+    7 * 24 * 60 * 60 * 1000 /* 7 days  in milliseconds */
   ) {
     return format(date, 'EEEE', { locale: ptBR });
   } else {

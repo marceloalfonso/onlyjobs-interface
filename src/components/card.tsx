@@ -99,7 +99,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
             : ''
         }`}
       >
-        <div className='relative h-28 md:h-40 bg-gradient-to-r from-blue-50 to-indigo-50'>
+        <div className='relative h-28 md:h-40 bg-gradient-to-r from-blue-50 to-[#e6eeff]'>
           <img
             src='/office-environment.jpg'
             alt='Ambiente de trabalho moderno'
