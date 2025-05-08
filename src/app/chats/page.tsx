@@ -134,7 +134,7 @@ export default function Chats() {
     useState<ChatPreview | null>(null);
   const [currentChatMessages, setCurrentChatMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [token, setToken] = useState<string | null>(null);
@@ -350,13 +350,28 @@ export default function Chats() {
     setToken(storedToken);
     setUser(JSON.parse(storedUser));
 
+    if (token && user?.id) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      socket.emit('join_user_room', user.id);
+    }
+
     handleResize();
 
     window.addEventListener('resize', handleResize);
 
     setIsLoading(false);
 
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      if (user?.id) {
+        socket.emit('leave_user_room', user.id);
+      }
+
+      sessionStorage.removeItem('chatId');
+      window.removeEventListener('resize', handleResize);
+    };
   }, [router]);
 
   useEffect(() => {
@@ -384,13 +399,13 @@ export default function Chats() {
   }, [token, chatPreviews.length]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    if (messagesRef.current) {
+      messagesRef.current.scrollIntoView({ behavior: 'auto' });
     }
   }, [currentChatMessages]);
 
   useEffect(() => {
-    if (token) {
+    if (token && user) {
       if (currentChatPreview) {
         socket.emit('join_chat', currentChatPreview.id);
       }
@@ -400,6 +415,10 @@ export default function Chats() {
       }
 
       socket.on('connect', () => {
+        if (user?.id) {
+          socket.emit('join_user_room', user.id);
+        }
+
         if (currentChatPreview) {
           socket.emit('join_chat', currentChatPreview.id);
         }
@@ -442,11 +461,11 @@ export default function Chats() {
               },
             ];
           });
-
-          setTimeout(() => {
-            loadChatPreviews();
-          }, 500);
         }
+      });
+
+      socket.on('new_notification', () => {
+        loadChatPreviews();
       });
 
       socket.on('message_read', (data: { messageId: string }) => {
@@ -475,9 +494,14 @@ export default function Chats() {
           socket.emit('leave_chat', currentChatPreview.id);
         }
 
+        if (user?.id) {
+          socket.emit('leave_user_room', user.id);
+        }
+
         socket.off('connect');
         socket.off('new_message');
-        socket.off('message_read'); // Remover o listener quando o componente for desmontado
+        socket.off('new_notification');
+        socket.off('message_read');
       };
     }
   }, [token, currentChatPreview, user?.id]);
@@ -509,7 +533,7 @@ export default function Chats() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder='Buscar conversas...'
-                  className='w-full py-2 pl-10 pr-4 transition-all border border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-600'
+                  className='w-full py-2 pl-10 pr-4 text-gray-900 placeholder-gray-600 transition-all border border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
                 />
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
@@ -595,7 +619,7 @@ export default function Chats() {
                             <h3 className='font-semibold text-gray-900 truncate'>
                               {chatPreview.name}
                             </h3>
-                            <p className='text-sm text-gray-500 truncate mt-1'>
+                            <p className='mt-1 text-sm text-gray-500 truncate'>
                               {chatPreview.lastMessage}
                             </p>
                           </div>
@@ -630,7 +654,7 @@ export default function Chats() {
                   <div className='flex items-center'>
                     {isMobile && (
                       <button
-                        className='mr-4 text-gray-600 hover:text-gray-900 cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-all duration-200'
+                        className='p-2 mr-4 text-gray-600 transition-all duration-200 rounded-full cursor-pointer hover:text-gray-900 hover:bg-gray-100'
                         onClick={handleBackToConversations}
                         aria-label='Voltar para lista de conversas'
                       >
@@ -666,7 +690,7 @@ export default function Chats() {
 
                   {!isMobile && (
                     <button
-                      className='text-gray-500 hover:text-gray-800 cursor-pointer hover:bg-gray-100 p-2 rounded-full transition-all duration-200'
+                      className='p-2 text-gray-500 transition-all duration-200 rounded-full cursor-pointer hover:text-gray-800 hover:bg-gray-100'
                       onClick={handleBackToConversations}
                       aria-label='Fechar conversa'
                     >
@@ -689,7 +713,7 @@ export default function Chats() {
                 </div>
 
                 <div className='flex-1 overflow-y-auto'>
-                  <div className='p-4 space-y-4 pb-0'>
+                  <div className='p-4 pb-0 space-y-4'>
                     {isLoading ? (
                       <div className='flex items-center justify-center h-full'>
                         <div className='w-8 h-8 border-b-2 border-blue-500 rounded-full animate-spin' />
@@ -841,11 +865,11 @@ export default function Chats() {
                         );
                       })()
                     )}
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesRef} />
                   </div>
                 </div>
 
-                <div className='p-4 bg-white border-t mt-auto sticky bottom-0'>
+                <div className='sticky bottom-0 p-4 mt-auto bg-white border-t'>
                   <div className='flex items-center gap-2'>
                     <input
                       type='text'
@@ -862,7 +886,7 @@ export default function Chats() {
                         }
                       }}
                       placeholder='Digite sua mensagem...'
-                      className='flex-1 px-4 py-2 transition border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 placeholder-gray-600'
+                      className='flex-1 px-4 py-2 text-gray-800 placeholder-gray-600 transition border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500'
                       autoComplete='off'
                     />
                     <button
@@ -888,7 +912,7 @@ export default function Chats() {
                 </div>
               </>
             ) : (
-              <div className='flex items-center justify-center h-full text-center p-4'>
+              <div className='flex items-center justify-center h-full p-4 text-center'>
                 <div className='max-w-md'>
                   <svg
                     xmlns='http://www.w3.org/2000/svg'
