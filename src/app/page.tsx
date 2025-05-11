@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Card, CardData } from '../components/card';
 import { Header } from '../components/header';
+import { MatchAnimation } from '../components/match-animation';
 import { isUserSignedIn } from '../utils/auth';
+import { Skill, User } from '../utils/types';
 
 async function getNotLikedUsers(token: string) {
   try {
@@ -29,7 +31,7 @@ async function getNotLikedUsers(token: string) {
   }
 }
 
-async function sendLike(token: string, toUserId: string): Promise<boolean> {
+async function sendLike(token: string, toUserId: string) {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/likes`, {
       method: 'POST',
@@ -40,15 +42,19 @@ async function sendLike(token: string, toUserId: string): Promise<boolean> {
       body: JSON.stringify({ toUserId }),
     });
 
-    const { message } = await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(message);
+      throw new Error(data.message);
     }
 
-    return true;
+    return {
+      likeId: data.likeId,
+      chatId: data.chatId,
+      isMatch: !!data.chatId,
+    };
   } catch (err) {
-    return false;
+    return { likeId: null, chatId: null, isMatch: false };
   }
 }
 
@@ -57,9 +63,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [cardsData, setCardsData] = useState<CardData[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [matchedUserName, setMatchedUserName] = useState<string | null>(null);
+  const [showMatchAnimation, setShowMatchAnimation] = useState(false);
 
   async function handleAccept(cardId: string) {
     if (!token) return;
@@ -74,9 +82,16 @@ export default function Home() {
     try {
       const result = await sendLike(token, cardId);
 
-      if (result) {
-        setCurrentCardIndex((prev) => prev + 1);
+      if (result.isMatch) {
+        const matchedCardData = cardsData.find((card) => card.id === cardId);
+
+        if (matchedCardData) {
+          setMatchedUserName(matchedCardData.title || matchedCardData.company);
+          setShowMatchAnimation(true);
+        }
       }
+
+      setCurrentCardIndex((prev) => prev + 1);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
@@ -146,17 +161,23 @@ export default function Home() {
                 } else {
                   const candidateCardData = {
                     id: notLikedUser.id,
-                    title: notLikedUser.profile.title || notLikedUser.name,
+                    title: notLikedUser.profile?.title || notLikedUser.name,
                     company: notLikedUser.name,
-                    stack: notLikedUser.profile.skills || [],
+                    stack: Array.isArray(notLikedUser.profile?.skills)
+                      ? notLikedUser.profile.skills.map((skill: Skill) =>
+                          typeof skill === 'object' && skill !== null
+                            ? skill.name || ''
+                            : String(skill || '')
+                        )
+                      : [],
                     benefits: ['Experiência relevante', 'Habilidades técnicas'],
                     companySize:
-                      notLikedUser.profile.experience || 'Não informado',
+                      notLikedUser.profile?.experience || 'Não informado',
                     workModel:
-                      notLikedUser.profile.preferredWorkModel ||
+                      notLikedUser.profile?.preferredWorkModel ||
                       'Não informado',
                     salary:
-                      notLikedUser.profile.expectedSalary || 'Não informado',
+                      notLikedUser.profile?.expectedSalary || 'Não informado',
                   };
 
                   return candidateCardData;
@@ -194,6 +215,13 @@ export default function Home() {
   return (
     <div className='flex flex-col min-h-screen overflow-x-hidden bg-white'>
       <Header />
+      {matchedUserName && showMatchAnimation && (
+        <MatchAnimation
+          matchedUserName={matchedUserName}
+          userRole={user?.role}
+          onClose={() => setShowMatchAnimation(false)}
+        />
+      )}
       <div className='flex flex-col flex-grow mt-16'>
         {error && (
           <div className='max-w-xl px-4 py-4 mx-auto mb-6 border-l-4 border-red-400 rounded-md bg-red-50'>
@@ -206,7 +234,7 @@ export default function Home() {
                 >
                   <path
                     fillRule='evenodd'
-                    d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                    d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
                     clipRule='evenodd'
                   />
                 </svg>

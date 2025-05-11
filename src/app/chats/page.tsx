@@ -8,25 +8,7 @@ import { Header } from '../../components/header';
 import { socket } from '../../lib/socketio';
 import { isUserSignedIn } from '../../utils/auth';
 import { formatTimestamp } from '../../utils/date-formatters';
-
-interface User {
-  id: string;
-  name: string;
-  profile?: {
-    avatar?: string;
-    [key: string]: any;
-  };
-}
-
-interface Message {
-  id: string;
-  chatId: string;
-  senderId: string;
-  content: string;
-  read: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Message, User } from '../../utils/types';
 
 interface Chat {
   id: string;
@@ -128,17 +110,17 @@ export default function Chats() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoadingChatPreviews, setIsLoadingChatPreviews] = useState(true);
   const [chatPreviews, setChatPreviews] = useState<ChatPreview[]>([]);
   const [currentChatPreview, setCurrentChatPreview] =
     useState<ChatPreview | null>(null);
   const [currentChatMessages, setCurrentChatMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const messagesRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
 
   async function loadChatMessages(chatId: string) {
     if (!token) return [];
@@ -152,7 +134,7 @@ export default function Chats() {
       const chat = chats.find((chat: Chat) => chat.id === chatId);
 
       if (!chat) {
-        throw new Error(`Chat com ID ${chatId} não encontrado`);
+        throw new Error(`Chat com ID ${chatId} não encontrado.`);
       }
 
       const chatMessages = chat.messages || [];
@@ -232,9 +214,7 @@ export default function Chats() {
             name: otherUser.name,
             image:
               otherUser.profile?.avatar || 'https://i.pravatar.cc/150?img=1',
-            lastMessage: lastMessage
-              ? lastMessage.content
-              : 'Nenhuma mensagem ainda',
+            lastMessage: lastMessage ? lastMessage.content : '',
             lastMessageTime: lastMessage
               ? formatTimestamp(lastMessage.createdAt, 'dynamic')
               : '',
@@ -302,7 +282,7 @@ export default function Chats() {
     }
   }
 
-  function handleChatSelect(chatPreview: ChatPreview) {
+  function handleOpenChat(chatPreview: ChatPreview) {
     if (currentChatPreview) {
       socket.emit('leave_chat', currentChatPreview.id);
     }
@@ -327,7 +307,7 @@ export default function Chats() {
     socket.emit('join_chat', chatPreview.id);
   }
 
-  function handleBackToConversations() {
+  function handleCloseChat() {
     setCurrentChatPreview(null);
     sessionStorage.removeItem('chatId');
   }
@@ -385,7 +365,7 @@ export default function Chats() {
           );
 
           if (storedChat) {
-            handleChatSelect(storedChat);
+            handleOpenChat(storedChat);
           }
         }
       });
@@ -526,7 +506,7 @@ export default function Chats() {
             ${isMobile && currentChatPreview ? 'hidden' : 'flex'}
           `}
           >
-            <div className='p-4 bg-white border-b h-[65px] flex items-center'>
+            <div className='p-4 bg-white border-b border-gray-200 h-[65px] flex items-center'>
               <div className='relative w-full'>
                 <input
                   type='text'
@@ -557,7 +537,10 @@ export default function Chats() {
                 Array.from({ length: 5 })
                   .fill(0)
                   .map((_, i) => (
-                    <div key={i} className='p-4 border-b animate-pulse'>
+                    <div
+                      key={i}
+                      className='p-4 border-b border-gray-200 animate-pulse'
+                    >
                       <div className='flex items-center'>
                         <div className='w-12 h-12 bg-gray-200 rounded-full' />
                         <div className='flex-1 ml-3'>
@@ -599,8 +582,8 @@ export default function Chats() {
                   .map((chatPreview) => (
                     <div
                       key={chatPreview.id}
-                      onClick={() => handleChatSelect(chatPreview)}
-                      className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b transition-colors ${
+                      onClick={() => handleOpenChat(chatPreview)}
+                      className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-200 transition-colors ${
                         currentChatPreview?.id === chatPreview.id
                           ? 'bg-blue-50'
                           : ''
@@ -650,12 +633,12 @@ export default function Chats() {
           >
             {currentChatPreview ? (
               <>
-                <div className='flex items-center justify-between p-4 bg-white border-b sticky top-0 z-10 h-[65px]'>
+                <div className='flex items-center justify-between p-4 bg-white border-b border-gray-200 sticky top-0 z-10 h-[65px]'>
                   <div className='flex items-center'>
                     {isMobile && (
                       <button
                         className='p-2 mr-4 text-gray-600 transition-all duration-200 rounded-full cursor-pointer hover:text-gray-900 hover:bg-gray-100'
-                        onClick={handleBackToConversations}
+                        onClick={handleCloseChat}
                         aria-label='Voltar para lista de conversas'
                       >
                         <svg
@@ -691,7 +674,7 @@ export default function Chats() {
                   {!isMobile && (
                     <button
                       className='p-2 text-gray-500 transition-all duration-200 rounded-full cursor-pointer hover:text-gray-800 hover:bg-gray-100'
-                      onClick={handleBackToConversations}
+                      onClick={handleCloseChat}
                       aria-label='Fechar conversa'
                     >
                       <svg
@@ -761,7 +744,7 @@ export default function Chats() {
                           />
                         </svg>
                         <p>Nenhuma mensagem ainda</p>
-                        <p className='text-sm'>Comece uma conversa!</p>
+                        <p className='text-sm'>Inicie o bate-papo!</p>
                       </div>
                     ) : (
                       (() => {
@@ -869,7 +852,7 @@ export default function Chats() {
                   </div>
                 </div>
 
-                <div className='sticky bottom-0 p-4 mt-auto bg-white border-t'>
+                <div className='sticky bottom-0 p-4 mt-auto bg-white border-t border-gray-200'>
                   <div className='flex items-center gap-2'>
                     <input
                       type='text'

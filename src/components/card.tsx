@@ -29,13 +29,13 @@ interface CardProps {
   data: CardData;
   userRole: Role;
   onAccept: (cardId: string) => void;
-  onReject: (cardId: string) => void;
+  onReject: () => void;
 }
 
 export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
-  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [startPosition, setStartPosition] = useState<Position>({ x: 0, y: 0 });
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
 
   const rotation = calculateRotation(position.x);
   const scale = calculateScale(position.x);
@@ -46,43 +46,55 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
     <div
       className='relative mx-0 select-none touch-none cursor-grab active:cursor-grabbing'
       onMouseDown={(e) =>
-        handleDragStart(e, setIsDragging, position, setStartPosition)
+        handleDragStart(
+          e,
+          position,
+          startPosition,
+          setStartPosition,
+          setIsDragging
+        )
       }
       onTouchStart={(e) =>
-        handleDragStart(e, setIsDragging, position, setStartPosition)
+        handleDragStart(
+          e,
+          position,
+          startPosition,
+          setStartPosition,
+          setIsDragging
+        )
       }
       onMouseMove={(e) =>
-        handleDragMove(e, isDragging, startPosition, setPosition)
+        handleDragMove(e, position, startPosition, setPosition, isDragging)
       }
       onTouchMove={(e) =>
-        handleDragMove(e, isDragging, startPosition, setPosition)
+        handleDragMove(e, position, startPosition, setPosition, isDragging)
       }
       onMouseUp={() =>
         handleDragEnd(
-          setIsDragging,
           position,
           setPosition,
+          setIsDragging,
           () => onAccept(data.id),
-          () => onReject(data.id)
+          () => onReject()
         )
       }
       onTouchEnd={() =>
         handleDragEnd(
-          setIsDragging,
           position,
           setPosition,
+          setIsDragging,
           () => onAccept(data.id),
-          () => onReject(data.id)
+          () => onReject()
         )
       }
       onMouseLeave={() =>
         isDragging &&
         handleDragEnd(
-          setIsDragging,
           position,
           setPosition,
+          setIsDragging,
           () => onAccept(data.id),
-          () => onReject(data.id)
+          () => onReject()
         )
       }
       style={{

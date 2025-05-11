@@ -8,9 +8,10 @@ export function preventImageDrag(e: React.DragEvent<HTMLImageElement>) {
 
 export function handleDragStart(
   e: React.MouseEvent | React.TouchEvent,
-  setIsDragging: Dispatch<SetStateAction<boolean>>,
   position: Position,
-  setStartPosition: Dispatch<SetStateAction<Position>>
+  startPosition: Position,
+  setStartPosition: Dispatch<SetStateAction<Position>>,
+  setIsDragging: Dispatch<SetStateAction<boolean>>
 ) {
   setIsDragging(true);
 
@@ -28,9 +29,10 @@ export function handleDragStart(
 
 export function handleDragMove(
   e: React.MouseEvent | React.TouchEvent,
-  isDragging: boolean,
+  position: Position,
   startPosition: Position,
-  setPosition: Dispatch<SetStateAction<Position>>
+  setPosition: Dispatch<SetStateAction<Position>>,
+  isDragging: boolean
 ) {
   if (!isDragging) return;
 
@@ -52,9 +54,9 @@ export function handleDragMove(
 }
 
 export function handleDragEnd(
-  setIsDragging: Dispatch<SetStateAction<boolean>>,
   position: Position,
   setPosition: Dispatch<SetStateAction<Position>>,
+  setIsDragging: Dispatch<SetStateAction<boolean>>,
   onAccept: () => void,
   onReject: () => void
 ) {

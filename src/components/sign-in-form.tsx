@@ -92,7 +92,7 @@ export const SignInForm = () => {
       const user = await getUser(token);
 
       if (!user) {
-        throw new Error('Usuário não encontrado');
+        throw new Error('Usuário não encontrado.');
       }
 
       localStorage.clear();

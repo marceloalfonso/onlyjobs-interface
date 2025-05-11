@@ -1,28 +1,36 @@
-export type Role = 'CANDIDATE' | 'COMPANY' | null;
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  profile: Record<string, any>;
+  chatIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Role = 'CANDIDATE' | 'COMPANY' | undefined | null;
+
+export type Message = {
+  id: string;
+  chatId: string;
+  senderId: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type Position = {
   x: number;
   y: number;
 };
 
-// Tipos para a página de perfil
 export type Skill = {
   id: string;
   name: string;
   isPriority: boolean;
-};
-
-export type UserProfile = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: Role;
-  birthDate?: Date | null;
-  resume?: File | null;
-  certifications?: File[];
-  skills?: Skill[];
-  avatarUrl?: string;
 };
 
 export type FileWithPreview = File & {

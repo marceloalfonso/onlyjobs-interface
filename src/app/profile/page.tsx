@@ -1,14 +1,13 @@
 'use client';
 
 import { Header } from '../../components/header';
-import ProfileSettings from '../../components/profile/ProfileSettings';
-import { ThemeProvider } from '../../context/ThemeContext';
+import { ProfileForm } from '../../components/profile-form';
 
 export default function Profile() {
   return (
-    <ThemeProvider>
+    <>
       <Header />
-      <ProfileSettings />
-    </ThemeProvider>
+      <ProfileForm />
+    </>
   );
 }
