@@ -84,7 +84,9 @@ export const SignUpForm = () => {
       return;
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível fazer o cadastro.'
       );
     } finally {
       setIsLoading(false);

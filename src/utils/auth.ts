@@ -5,3 +5,10 @@ export function isUserSignedIn(): boolean {
 
   return !!token && !!user;
 }
+
+export function logout() {
+  localStorage.removeItem('user');
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+}

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.0",
+    "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-popover": "^1.1.13",
     "@types/socket.io-client": "^1.4.36",
     "date-fns": "^4.1.0",

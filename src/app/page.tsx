@@ -6,7 +6,117 @@ import { Card, CardData } from '../components/card';
 import { Header } from '../components/header';
 import { MatchAnimation } from '../components/match-animation';
 import { isUserSignedIn } from '../utils/auth';
+import { calculateAge } from '../utils/date-formatters';
 import { Skill, User } from '../utils/types';
+
+// Opções de seleção para usar na formatação dos dados dos cards
+const educationOptions = [
+  { value: 'fundamental', label: 'Ensino Fundamental' },
+  { value: 'medio', label: 'Ensino Médio' },
+  { value: 'tecnico', label: 'Ensino Técnico' },
+  { value: 'superior_incompleto', label: 'Superior Incompleto' },
+  { value: 'superior_cursando', label: 'Superior em Andamento' },
+  { value: 'superior', label: 'Superior Completo' },
+  { value: 'posgraduacao', label: 'Pós-graduação' },
+  { value: 'mestrado', label: 'Mestrado' },
+  { value: 'doutorado', label: 'Doutorado' },
+];
+
+const experienceOptions = [
+  { value: 'sem_experiencia', label: 'Sem experiência' },
+  { value: 'menos_1', label: 'Menos de 1 ano' },
+  { value: '1_2', label: '1-2 anos' },
+  { value: '3_5', label: '3-5 anos' },
+  { value: '6_10', label: '6-10 anos' },
+  { value: 'mais_10', label: 'Mais de 10 anos' },
+];
+
+const seniorityOptions = [
+  { value: 'estagiario', label: 'Estagiário' },
+  { value: 'junior', label: 'Júnior' },
+  { value: 'pleno', label: 'Pleno' },
+  { value: 'senior', label: 'Sênior' },
+  { value: 'especialista', label: 'Especialista' },
+  { value: 'lideranca', label: 'Liderança/Gestão' },
+];
+
+const availabilityOptions = [
+  { value: 'integral', label: 'Tempo Integral' },
+  { value: 'parcial', label: 'Meio Período' },
+  { value: 'freelancer', label: 'Freelancer/Projetos' },
+  { value: 'estagio', label: 'Estágio' },
+  { value: 'aprendiz', label: 'Jovem Aprendiz' },
+];
+
+// Opções específicas para empresas
+const industrySectorOptions = [
+  { value: 'agronegocio', label: 'Agronegócio' },
+  { value: 'alimentacao', label: 'Alimentação' },
+  { value: 'construcao', label: 'Construção Civil' },
+  { value: 'educacao', label: 'Educação' },
+  { value: 'financas', label: 'Finanças' },
+  { value: 'industria', label: 'Indústria' },
+  { value: 'logistica', label: 'Logística/Transporte' },
+  { value: 'marketing', label: 'Marketing/Publicidade' },
+  { value: 'outro', label: 'Outro' },
+  { value: 'saude', label: 'Saúde' },
+  { value: 'servicos', label: 'Serviços' },
+  { value: 'tecnologia', label: 'Tecnologia' },
+  { value: 'telecomunicacoes', label: 'Telecomunicações' },
+  { value: 'turismo', label: 'Turismo/Hotelaria' },
+  { value: 'varejo', label: 'Varejo' },
+];
+
+const companySizeOptions = [
+  { value: 'startup', label: 'Startup' },
+  { value: 'pequena', label: 'Pequena' },
+  { value: 'media', label: 'Média' },
+  { value: 'grande', label: 'Grande' },
+  { value: 'multinacional', label: 'Multinacional' },
+];
+
+const workModelOptions = [
+  { value: 'hibrido', label: 'Híbrido' },
+  { value: 'presencial', label: 'Presencial' },
+  { value: 'remoto', label: 'Remoto' },
+];
+
+const benefitsOptions = [
+  { value: 'auxilio_creche', label: 'Auxílio-creche' },
+  { value: 'home_office', label: 'Auxílio home office' },
+  { value: 'bonus', label: 'Bônus/Comissões' },
+  { value: 'cursos', label: 'Cursos/Capacitação' },
+  { value: 'day_off', label: 'Day off de aniversário' },
+  { value: 'gympass', label: 'Gympass/Academia' },
+  { value: 'horario_flexivel', label: 'Horário flexível' },
+  { value: 'participacao_lucros', label: 'Participação nos lucros' },
+  { value: 'plano_odontologico', label: 'Plano odontológico' },
+  { value: 'plano_saude', label: 'Plano de saúde' },
+  { value: 'seguro_vida', label: 'Seguro de vida' },
+  { value: 'vale_alimentacao', label: 'Vale-alimentação' },
+  { value: 'vale_refeicao', label: 'Vale-refeição' },
+];
+
+const companyTechnologiesOptions = [
+  { value: 'aws', label: 'AWS' },
+  { value: 'azure', label: 'Azure' },
+  { value: 'c_sharp', label: 'C#' },
+  { value: 'data_science', label: 'Ciência de Dados' },
+  { value: 'cloud', label: 'Cloud Computing' },
+  { value: 'docker', label: 'Docker' },
+  { value: 'gcp', label: 'Google Cloud' },
+  { value: 'ia', label: 'Inteligência Artificial' },
+  { value: 'java', label: 'Java' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'kubernetes', label: 'Kubernetes' },
+  { value: 'machine_learning', label: 'Machine Learning' },
+  { value: 'node', label: 'Node.js' },
+  { value: 'php', label: 'PHP' },
+  { value: 'python', label: 'Python' },
+  { value: 'react', label: 'React' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'typescript', label: 'TypeScript' },
+];
 
 async function getNotLikedUsers(token: string) {
   try {
@@ -68,6 +178,9 @@ export default function Home() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [matchedUserName, setMatchedUserName] = useState<string | null>(null);
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
+  const [matchedUserProfileImage, setMatchedUserProfileImage] = useState<
+    string | undefined
+  >(undefined);
 
   async function handleAccept(cardId: string) {
     if (!token) return;
@@ -87,6 +200,13 @@ export default function Home() {
 
         if (matchedCardData) {
           setMatchedUserName(matchedCardData.title || matchedCardData.company);
+
+          if (matchedCardData.profilePicture) {
+            setMatchedUserProfileImage(matchedCardData.profilePicture);
+          } else {
+            setMatchedUserProfileImage(undefined);
+          }
+
           setShowMatchAnimation(true);
         }
       }
@@ -94,7 +214,7 @@ export default function Home() {
       setCurrentCardIndex((prev) => prev + 1);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
+        err instanceof Error ? err.message : 'Não foi possível dar like.'
       );
     } finally {
       setIsLoading(false);
@@ -141,43 +261,206 @@ export default function Home() {
                 profile: Record<string, any>;
               }) => {
                 if (user?.role === 'CANDIDATE') {
+                  // Formatação de dados para cards de empresas, vistos pelos candidatos
                   const companyCardData = {
                     id: notLikedUser.id,
                     title: notLikedUser.name,
                     company: notLikedUser.name || 'Empresa',
-                    stack: notLikedUser.profile.technologies || [],
-                    benefits: notLikedUser.profile.benefits || [
-                      'Plano de saúde',
-                      'Vale refeição',
-                    ],
-                    companySize:
-                      notLikedUser.profile.companySize || 'Não informado',
-                    workModel:
-                      notLikedUser.profile.workModel || 'Não informado',
-                    salary: notLikedUser.profile.salary || 'Não informado',
+                    // Tecnologias da empresa convertidas de array de valores para strings
+                    stack: Array.isArray(
+                      notLikedUser.profile?.companyTechnologies
+                    )
+                      ? notLikedUser.profile.companyTechnologies.map(
+                          (tech: string) => {
+                            // Encontra o label correspondente no array de opções
+                            const techOption = companyTechnologiesOptions.find(
+                              (option) => option.value === tech
+                            );
+                            return techOption ? techOption.label : tech;
+                          }
+                        )
+                      : [],
+                    // Benefícios oferecidos pela empresa
+                    benefits: Array.isArray(notLikedUser.profile?.benefits)
+                      ? notLikedUser.profile.benefits.map((benefit: string) => {
+                          // Encontra o label correspondente no array de opções
+                          const benefitOption = benefitsOptions.find(
+                            (option) => option.value === benefit
+                          );
+                          return benefitOption ? benefitOption.label : benefit;
+                        })
+                      : ['Sem benefícios cadastrados'],
+                    // Informações adicionais da empresa
+                    companySize: (() => {
+                      const sizeValue = notLikedUser.profile?.companySize;
+                      if (!sizeValue) return 'Não informado';
+                      const sizeOption = companySizeOptions.find(
+                        (option) => option.value === sizeValue
+                      );
+                      return sizeOption ? sizeOption.label : sizeValue;
+                    })(),
+                    workModel: (() => {
+                      const modelValue = notLikedUser.profile?.workModel;
+                      if (!modelValue) return 'Não informado';
+                      const modelOption = workModelOptions.find(
+                        (option) => option.value === modelValue
+                      );
+                      return modelOption ? modelOption.label : modelValue;
+                    })(),
+                    salary: notLikedUser.profile?.salary || 'A combinar',
+                    profilePicture: notLikedUser.profile?.picture || undefined,
+                    // Adicionando os campos extras
+                    location: notLikedUser.profile?.location || undefined,
+                    summary: notLikedUser.profile?.summary || undefined,
+                    // Formatar as áreas de contratação
+                    hiringAreas: Array.isArray(
+                      notLikedUser.profile?.hiringAreas
+                    )
+                      ? notLikedUser.profile.hiringAreas
+                      : [],
+                    // Adicionar o campo de setor/indústria
+                    industrySector: (() => {
+                      const sector = notLikedUser.profile?.industrySector;
+                      if (!sector) return undefined;
+                      const sectorOption = industrySectorOptions.find(
+                        (option) => option.value === sector
+                      );
+                      return sectorOption ? sectorOption.label : sector;
+                    })(),
+                    // Incluir website da empresa
+                    website: notLikedUser.profile?.website || undefined,
                   };
 
                   return companyCardData;
                 } else {
+                  // Formatação de dados para cards de candidatos, vistos pelas empresas
                   const candidateCardData = {
                     id: notLikedUser.id,
-                    title: notLikedUser.profile?.title || notLikedUser.name,
-                    company: notLikedUser.name,
-                    stack: Array.isArray(notLikedUser.profile?.skills)
-                      ? notLikedUser.profile.skills.map((skill: Skill) =>
-                          typeof skill === 'object' && skill !== null
-                            ? skill.name || ''
-                            : String(skill || '')
-                        )
+                    title: notLikedUser.name, // Título será o nome do usuário
+                    company: notLikedUser.name, // Mantendo o nome do usuário aqui também
+                    // Adicionar campo de senioridade separado
+                    seniority: (() => {
+                      const seniority = notLikedUser.profile?.seniority;
+                      if (!seniority) return undefined;
+
+                      const seniorityOption = seniorityOptions.find(
+                        (option) => option.value === seniority
+                      );
+                      return seniorityOption
+                        ? seniorityOption.label
+                        : seniority;
+                    })(),
+                    // Calcula a idade a partir da data de nascimento
+                    age: notLikedUser.profile?.birthDate
+                      ? calculateAge(notLikedUser.profile.birthDate)
+                      : undefined,
+                    // Processa idiomas do candidato
+                    languages: Array.isArray(
+                      notLikedUser.profile?.languageSkills
+                    )
+                      ? notLikedUser.profile.languageSkills.map((lang: any) => {
+                          if (typeof lang === 'object' && lang !== null) {
+                            const language = lang.language || '';
+                            // Traduzindo proficiências para português
+                            let proficiency = lang.proficiency || '';
+                            switch (proficiency.toLowerCase()) {
+                              case 'native':
+                                proficiency = 'nativo';
+                                break;
+                              case 'fluent':
+                                proficiency = 'fluente';
+                                break;
+                              case 'advanced':
+                                proficiency = 'avançado';
+                                break;
+                              case 'intermediate':
+                                proficiency = 'intermediário';
+                                break;
+                              case 'basic':
+                                proficiency = 'básico';
+                                break;
+                              default:
+                                break;
+                            }
+                            return `${language} (${proficiency})`;
+                          }
+                          return String(lang || '');
+                        })
                       : [],
-                    benefits: ['Experiência relevante', 'Habilidades técnicas'],
-                    companySize:
-                      notLikedUser.profile?.experience || 'Não informado',
-                    workModel:
-                      notLikedUser.profile?.preferredWorkModel ||
-                      'Não informado',
+                    // Habilidades do candidato
+                    stack: Array.isArray(notLikedUser.profile?.skills)
+                      ? notLikedUser.profile.skills
+                          .filter(
+                            (skill: Skill) =>
+                              typeof skill === 'object' && skill !== null
+                          )
+                          .map((skill: Skill) =>
+                            typeof skill === 'object' && skill !== null
+                              ? skill.name || ''
+                              : String(skill || '')
+                          )
+                      : [],
+                    // Formação e disponibilidade como qualificações
+                    // Removendo a duplicação da disponibilidade, mantendo apenas formação e outras qualificações
+                    benefits: [
+                      (() => {
+                        const edu = notLikedUser.profile?.education;
+                        if (!edu) return 'Formação não informada';
+                        const eduOption = educationOptions.find(
+                          (option) => option.value === edu
+                        );
+                        return eduOption
+                          ? `Formação: ${eduOption.label}`
+                          : `Formação: ${edu}`;
+                      })(),
+                      // Adicionar o curso se estiver disponível e for um curso de nível superior
+                      (() => {
+                        const edu = notLikedUser.profile?.education;
+                        const course = notLikedUser.profile?.course;
+
+                        // Verifica se é uma formação superior e se tem curso informado
+                        if (
+                          course &&
+                          edu &&
+                          [
+                            'superior_incompleto',
+                            'superior_cursando',
+                            'superior',
+                            'posgraduacao',
+                            'mestrado',
+                            'doutorado',
+                          ].includes(edu)
+                        ) {
+                          return `Curso: ${course}`;
+                        }
+                        return null;
+                      })(),
+                    ].filter(Boolean), // Remove itens nulos da lista
+                    // Anos de experiência
+                    companySize: (() => {
+                      const exp = notLikedUser.profile?.experienceYears;
+                      if (!exp) return 'Não informado';
+                      const expOption = experienceOptions.find(
+                        (option) => option.value === exp
+                      );
+                      return expOption ? expOption.label : exp;
+                    })(),
+                    // Disponibilidade
+                    workModel: (() => {
+                      const avail = notLikedUser.profile?.availability;
+                      if (!avail) return 'Não informado';
+                      const availOption = availabilityOptions.find(
+                        (option) => option.value === avail
+                      );
+                      return availOption ? availOption.label : avail;
+                    })(),
+                    // Pretensão salarial (adicionado)
                     salary:
-                      notLikedUser.profile?.expectedSalary || 'Não informado',
+                      notLikedUser.profile?.expectedSalary || 'A combinar',
+                    profilePicture: notLikedUser.profile?.picture || undefined,
+                    // Novos campos para o card redesenhado
+                    summary: notLikedUser.profile?.summary || undefined,
+                    location: notLikedUser.profile?.location || undefined,
                   };
 
                   return candidateCardData;
@@ -185,14 +468,16 @@ export default function Home() {
               }
             );
 
-            setCardsData(formattedCardsData.sort(() => Math.random() - 0.5));
+            setCardsData(formattedCardsData);
           } else {
             setCardsData([]);
           }
         })
         .catch((err) => {
           setError(
-            err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'
+            err instanceof Error
+              ? err.message
+              : 'Não foi possível encontrar usuários que ainda não foram curtidos.'
           );
         })
         .finally(() => {
@@ -220,6 +505,8 @@ export default function Home() {
           matchedUserName={matchedUserName}
           userRole={user?.role}
           onClose={() => setShowMatchAnimation(false)}
+          userProfileImage={user?.profile?.picture}
+          matchedUserProfileImage={matchedUserProfileImage}
         />
       )}
       <div className='flex flex-col flex-grow mt-16'>
@@ -251,16 +538,16 @@ export default function Home() {
             </div>
           </div>
         )}
-        <div className='w-full px-4 bg-white shadow-sm'>
+        <div className='w-full px-4 bg-white'>
           <div className='max-w-6xl mx-auto'>
-            <div className='py-6 text-center sm:py-8 md:py-10'>
-              <h1 className='mb-4 text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl lg:text-6xl'>
+            <div className='py-4 text-center sm:py-5'>
+              <h1 className='mb-2 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl'>
                 {user?.role === 'CANDIDATE'
-                  ? 'Sua carreira dos sonhos está a um match de distância'
-                  : 'Encontre os melhores talentos para sua empresa'}
+                  ? 'Encontre sua oportunidade ideal'
+                  : 'Encontre talentos para sua empresa'}
               </h1>
-              <p className='text-lg sm:text-xl md:text-2xl text-[#6B4F3D]'>
-                Conectando talentos e oportunidades de forma inovadora
+              <p className='text-base text-[#6B4F3D] sm:text-lg'>
+                Conectando talentos e oportunidades
               </p>
             </div>
           </div>
@@ -268,7 +555,6 @@ export default function Home() {
         <div className='flex flex-col flex-grow px-4 py-4'>
           <div className='relative flex items-center justify-center w-full max-w-6xl mx-auto'>
             <div className='absolute flex-col items-center hidden font-medium text-red-400 -translate-y-1/2 md:flex left-4 top-1/2'>
-              <i className='mb-2 text-2xl fas fa-arrow-left'></i>
               <p className='text-base font-medium text-center md:text-lg'>
                 Arraste para
                 <br />
@@ -276,7 +562,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className='w-full max-w-sm mx-auto'>
+            <div className='w-full max-w-lg mx-auto'>
               {cardsData.length === 0 ? (
                 <div className='p-6 text-center bg-white shadow-xl rounded-xl'>
                   <h3 className='mb-3 text-xl font-light text-gray-800'>
@@ -359,7 +645,6 @@ export default function Home() {
             </div>
 
             <div className='absolute flex-col items-center hidden font-medium text-green-400 -translate-y-1/2 md:flex right-4 top-1/2'>
-              <i className='mb-2 text-2xl fas fa-arrow-right'></i>
               <p className='text-base font-medium text-center md:text-lg'>
                 Arraste para
                 <br />

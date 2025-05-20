@@ -90,3 +90,34 @@ export function formatTimestamp(
     return format(date, 'dd/MM/yy');
   }
 }
+
+/**
+ * Calcula a idade em anos a partir de uma data de nascimento
+ *
+ * @param birthDate - Data de nascimento como string ou objeto Date
+ * @returns Idade em anos
+ */
+export function calculateAge(birthDate: string | Date | undefined): number {
+  if (!birthDate) return 0;
+
+  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate;
+
+  // Verifica se a data é válida
+  if (isNaN(birth.getTime())) return 0;
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+
+  // Ajusta a idade se ainda não fez aniversário este ano
+  const birthMonth = birth.getMonth();
+  const currentMonth = today.getMonth();
+
+  if (
+    currentMonth < birthMonth ||
+    (currentMonth === birthMonth && today.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
+}

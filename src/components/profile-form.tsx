@@ -1,57 +1,70 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Dialog from '@radix-ui/react-dialog';
 import * as Popover from '@radix-ui/react-popover';
 import { format } from 'date-fns';
-import {
-  Calendar,
-  Camera,
-  CheckCircle,
-  ChevronDown,
-  FileText,
-  Plus,
-  X,
-} from 'lucide-react';
+import { Calendar, LogOut, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { isUserSignedIn } from '../utils/auth';
-import { Skill, User } from '../utils/types';
+import { isUserSignedIn, logout } from '../utils/auth';
+import {
+  availabilityOptions,
+  benefitsOptions,
+  companySizeOptions,
+  companyTechnologiesOptions,
+  educationOptions,
+  experienceOptions,
+  higherEducationLevels,
+  hiringAreasOptions,
+  industrySectorOptions,
+  predefinedSkills,
+  seniorityOptions,
+  workModelOptions,
+} from '../utils/constants';
+import { LanguageSkill, Skill, User } from '../utils/types';
+import { LanguageSkillSelector } from './language-skill-selector';
+import { MultiSelectField } from './multi-select-field';
+import { ProfilePicture } from './profile-picture';
+import { SelectField } from './select-field';
+import { SkillSelector } from './skill-selector';
+import { TextField } from './text-field';
 
 const profileFormSchema = z.object({
   name: z.string().optional(),
   email: z.string().email('Email inválido').optional(),
-  phone: z.string().optional(),
+  picture: z.string().optional(),
   birthDate: z.date().nullable().optional(),
+  location: z.string().optional(),
+  summary: z
+    .string()
+    .max(150, 'O resumo deve ter no máximo 150 caracteres')
+    .optional(),
+
+  // Campos específicos para candidatos
+  education: z.string().optional(),
+  course: z.string().optional(), // Novo campo para o curso da formação acadêmica
+  experienceYears: z.string().optional(),
+  seniority: z.string().optional(),
+  availability: z.string().optional(),
+  expectedSalary: z.string().optional(),
+
+  // Campos específicos para empresas
+  industrySector: z.string().optional(),
+  companySize: z.string().optional(),
+  website: z.string().optional(),
+  workModel: z.string().optional(),
+  benefits: z.array(z.string()).optional(),
+  hiringAreas: z.array(z.string()).optional(),
+  companyTechnologies: z.array(z.string()).optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
-
-const predefinedSkills = [
-  'Agile',
-  'AWS',
-  'C#',
-  'Docker',
-  'Excel',
-  'Git',
-  'Java',
-  'JavaScript',
-  'Node.js',
-  'PHP',
-  'Project Management',
-  'Python',
-  'React',
-  'Scrum',
-  'SQL',
-  'TypeScript',
-  'UI/UX Design',
-];
-
-const languages = [{ value: 'pt-BR', label: 'Português (Brasil)' }];
 
 async function getUser(token: string) {
   try {
@@ -82,22 +95,44 @@ export const ProfileForm = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [connectionError, setConnectionError] = useState(false);
   const [shouldRedirect, setShouldRedirect] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('pt-BR');
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profileImageSrc, setProfileImageSrc] = useState<string | undefined>(
     undefined
   );
   const [birthDate, setBirthDate] = useState<Date | null>(null);
+  // Adicionando estado para controlar a exibição do campo de curso
+  const [showCourseField, setShowCourseField] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
   });
+
+  // Observa mudanças no campo de educação para mostrar/esconder o campo de curso
+  const currentEducation = watch('education');
+
+  // Efeito para atualizar a exibição do campo de curso
+  useEffect(() => {
+    const isHigherEducation = higherEducationLevels.includes(
+      currentEducation || ''
+    );
+    setShowCourseField(isHigherEducation);
+  }, [currentEducation]);
+
+  // Função de logout
+  const handleLogout = () => {
+    logout();
+    router.push('/sign-in');
+  };
 
   async function updateUserProfile(formData: ProfileFormData) {
     setIsLoading(true);
@@ -112,14 +147,90 @@ export const ProfileForm = () => {
       // Prepara apenas os dados que foram preenchidos
       const updatedProfile: Record<string, any> = {};
 
-      // Adiciona o telefone apenas se tiver sido preenchido
-      if (formData.phone !== undefined && formData.phone !== '') {
-        updatedProfile.phone = formData.phone;
-      }
-
-      // Adiciona a data de nascimento apenas se tiver sido preenchida
+      // Adiciona campos comuns que existem tanto para candidatos quanto empresas
       if (formData.birthDate) {
         updatedProfile.birthDate = formData.birthDate;
+      }
+
+      if (formData.location) {
+        updatedProfile.location = formData.location;
+      }
+
+      if (formData.summary) {
+        updatedProfile.summary = formData.summary;
+      }
+
+      // Adiciona campos específicos para candidatos
+      if (user?.role === 'CANDIDATE') {
+        if (formData.education) {
+          updatedProfile.education = formData.education;
+        }
+
+        // Adiciona o curso apenas se for uma formação superior e o campo estiver preenchido
+        if (
+          higherEducationLevels.includes(formData.education || '') &&
+          formData.course
+        ) {
+          updatedProfile.course = formData.course;
+        }
+
+        if (formData.experienceYears) {
+          updatedProfile.experienceYears = formData.experienceYears;
+        }
+
+        if (formData.seniority) {
+          updatedProfile.seniority = formData.seniority;
+        }
+
+        if (formData.availability) {
+          updatedProfile.availability = formData.availability;
+        }
+
+        if (formData.expectedSalary) {
+          updatedProfile.expectedSalary = formData.expectedSalary;
+        }
+      }
+
+      // Adiciona campos específicos para empresas
+      else if (user?.role === 'COMPANY') {
+        if (formData.industrySector) {
+          updatedProfile.industrySector = formData.industrySector;
+        }
+
+        if (formData.companySize) {
+          updatedProfile.companySize = formData.companySize;
+        }
+
+        if (formData.website) {
+          updatedProfile.website = formData.website;
+        }
+
+        if (formData.workModel) {
+          updatedProfile.workModel = formData.workModel;
+        }
+
+        // Incluir áreas de contratação se existirem
+        if (
+          user?.profile?.hiringAreas &&
+          Array.isArray(user.profile.hiringAreas) &&
+          user.profile.hiringAreas.length > 0
+        ) {
+          updatedProfile.hiringAreas = user.profile.hiringAreas;
+        }
+
+        // Incluir tecnologias utilizadas se existirem
+        if (
+          user?.profile?.companyTechnologies &&
+          Array.isArray(user.profile.companyTechnologies) &&
+          user.profile.companyTechnologies.length > 0
+        ) {
+          updatedProfile.companyTechnologies = user.profile.companyTechnologies;
+        }
+
+        // Incluir os benefícios se existirem
+        if (user?.profile?.benefits && Array.isArray(user.profile.benefits)) {
+          updatedProfile.benefits = user.profile.benefits;
+        }
       }
 
       // Incluir skills se existirem
@@ -131,23 +242,42 @@ export const ProfileForm = () => {
         updatedProfile.skills = user.profile.skills;
       }
 
-      // Incluir avatar se existir
-      if (user?.profile?.avatarUrl && user.profile.avatarUrl !== '') {
-        updatedProfile.avatarUrl = user.profile.avatarUrl;
+      // Incluir idiomas se existirem
+      if (
+        user?.profile?.languageSkills &&
+        Array.isArray(user.profile.languageSkills) &&
+        user.profile.languageSkills.length > 0
+      ) {
+        updatedProfile.languageSkills = user.profile.languageSkills;
       }
 
-      // Incluir currículo se existir
-      if (user?.profile?.resume) {
+      // Incluir currículo se existir - apenas para candidatos
+      if (user?.role === 'CANDIDATE' && user?.profile?.resume) {
         updatedProfile.resume = user.profile.resume;
       }
 
-      // Incluir certificações se existirem
+      // Incluir certificações se existirem - apenas para candidatos
       if (
+        user?.role === 'CANDIDATE' &&
         user?.profile?.certifications &&
         Array.isArray(user.profile.certifications) &&
         user.profile.certifications.length > 0
       ) {
         updatedProfile.certifications = user.profile.certifications;
+      }
+
+      // Converter imagem de perfil para base64 e incluir em picture
+      if (profilePicture) {
+        const toBase64 = (file: File) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        updatedProfile.picture = await toBase64(profilePicture);
+      } else if (user?.profile?.picture) {
+        updatedProfile.picture = user.profile.picture;
       }
 
       const response = await fetch(
@@ -231,19 +361,43 @@ export const ProfileForm = () => {
         const userData = await getUser(token);
         if (userData) {
           setUser(userData);
-          setProfileImageSrc(userData.avatarUrl);
-
-          // Preenche o formulário com os dados do perfil
-          // Importante: usar form.setValue para garantir que os inputs exibam os valores
-          setValue('name', userData.name || '');
-          setValue('email', userData.email || '');
-
-          // Agora acessa o telefone através de userData.profile.phone
-          if (userData.profile?.phone) {
-            setValue('phone', userData.profile.phone);
+          // Prioriza a foto em base64 salva no profile.picture
+          if (userData.profile?.picture) {
+            setProfileImageSrc(userData.profile.picture);
+          } else {
+            setProfileImageSrc(undefined);
           }
 
-          // Acessa a data de nascimento através de userData.profile
+          // Preenche o formulário com os dados do perfil
+          setValue('name', userData.name || '');
+          setValue('email', userData.email || '');
+          setValue('location', userData.profile?.location || '');
+          setValue('summary', userData.profile?.summary || '');
+
+          // Se for candidato, preenche campos específicos de candidato
+          if (userData.role === 'CANDIDATE') {
+            const education = userData.profile?.education || '';
+            setValue('education', education);
+            setValue('course', userData.profile?.course || '');
+            setValue(
+              'experienceYears',
+              userData.profile?.experienceYears || ''
+            );
+            setValue('seniority', userData.profile?.seniority || '');
+            setValue('availability', userData.profile?.availability || '');
+
+            // Define se o campo de curso deve ser exibido inicialmente
+            const isHigherEducation = higherEducationLevels.includes(education);
+            setShowCourseField(isHigherEducation);
+          }
+          // Se for empresa, preenche campos específicos de empresa
+          else if (userData.role === 'COMPANY') {
+            setValue('industrySector', userData.profile?.industrySector || '');
+            setValue('companySize', userData.profile?.companySize || '');
+            setValue('website', userData.profile?.website || '');
+            setValue('workModel', userData.profile?.workModel || '');
+          }
+
           if (userData.profile?.birthDate) {
             const birthDate = new Date(userData.profile.birthDate);
             setBirthDate(birthDate);
@@ -308,17 +462,28 @@ export const ProfileForm = () => {
           if (userData) {
             setUser(userData);
             setIsLoading(false);
-            setProfileImageSrc(userData.avatarUrl);
+            // Prioriza a foto em base64 salva no profile.picture
+            if (userData.profile?.picture) {
+              setProfileImageSrc(userData.profile.picture);
+            } else if (userData.avatarUrl) {
+              setProfileImageSrc(userData.avatarUrl);
+            } else {
+              setProfileImageSrc(undefined);
+            }
 
             // Preenche o formulário com os dados do perfil
             reset({
               name: userData.name || '',
               email: userData.email || '',
-              phone: userData.phone || '',
-
               birthDate: userData.birthDate
                 ? new Date(userData.birthDate)
                 : null,
+              education: userData.profile?.education || '',
+              experienceYears: userData.profile?.experienceYears || '',
+              location: userData.profile?.location || '',
+              seniority: userData.profile?.seniority || '',
+              availability: userData.profile?.availability || '',
+              summary: userData.profile?.summary || '',
             });
 
             if (userData.birthDate) {
@@ -340,6 +505,46 @@ export const ProfileForm = () => {
     }, 1000);
   };
 
+  // Manipuladores para campos específicos de empresas
+  const handleBenefitsChange = (selectedBenefits: string[]) => {
+    setUser((prev: User | null) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        profile: {
+          ...(prev.profile || {}),
+          benefits: selectedBenefits,
+        },
+      };
+    });
+  };
+
+  const handleHiringAreasChange = (selectedAreas: string[]) => {
+    setUser((prev: User | null) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        profile: {
+          ...(prev.profile || {}),
+          hiringAreas: selectedAreas,
+        },
+      };
+    });
+  };
+
+  const handleCompanyTechnologiesChange = (selectedTechnologies: string[]) => {
+    setUser((prev: User | null) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        profile: {
+          ...(prev.profile || {}),
+          companyTechnologies: selectedTechnologies,
+        },
+      };
+    });
+  };
+
   // Manipuladores para os campos personalizados que não são controlados pelo React Hook Form
   const handleDateSelect = (date: Date | undefined) => {
     setBirthDate(date || null);
@@ -359,71 +564,6 @@ export const ProfileForm = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleResumeUpload = (files: FileList | null) => {
-    if (files && files[0]) {
-      setUser((prev: User | null) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          profile: {
-            ...(prev.profile || {}),
-            resume: files[0],
-          },
-        };
-      });
-    }
-  };
-
-  const handleCertificationUpload = (files: FileList | null) => {
-    if (files) {
-      const newCertifications = Array.from(files);
-      setUser((prev: User | null) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          profile: {
-            ...(prev.profile || {}),
-            certifications: [
-              ...(prev.profile?.certifications || []),
-              ...newCertifications,
-            ],
-          },
-        };
-      });
-    }
-  };
-
-  const removeResume = () => {
-    setUser((prev: User | null) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        profile: {
-          ...(prev.profile || {}),
-          resume: null,
-        },
-      };
-    });
-  };
-
-  const removeCertification = (index?: number) => {
-    if (index === undefined) return;
-
-    setUser((prev: User | null) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        profile: {
-          ...(prev.profile || {}),
-          certifications:
-            prev.profile?.certifications?.filter(
-              (_: File, i: number) => i !== index
-            ) || [],
-        },
-      };
-    });
-  };
-
   const handleSkillChange = (updatedSkills: Skill[]) => {
     setUser((prev: User | null) => {
       if (!prev) return prev;
@@ -437,328 +577,48 @@ export const ProfileForm = () => {
     });
   };
 
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedLanguage(e.target.value);
-    // Aqui você pode adicionar lógica para alterar o idioma da aplicação
-  };
+  // Função para excluir conta
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation.toLowerCase() !== 'deletar') {
+      setDeleteError('Digite "deletar" para prosseguir com a exclusão');
+      return;
+    }
 
-  // Componente de TextField reutilizável
-  const TextField = ({
-    id,
-    label,
-    type = 'text',
-    placeholder = '',
-    required = false,
-  }: {
-    id: string;
-    label: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-  }) => {
-    return (
-      <div className='mb-4'>
-        <label
-          htmlFor={id}
-          className='block text-sm font-medium text-gray-700 mb-1'
-        >
-          {label}
-        </label>
-        <input
-          type={type}
-          id={id}
-          placeholder={placeholder}
-          {...register(id as any)}
-          className='w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors'
-        />
-        {errors[id as keyof ProfileFormData] && (
-          <p className='mt-1 text-xs text-red-600'>
-            {errors[id as keyof ProfileFormData]?.message as string}
-          </p>
-        )}
-      </div>
-    );
-  };
+    setIsLoading(true);
+    setError('');
+    setDeleteError('');
+    setSuccessMessage('');
 
-  // Componente de FileUpload reutilizável
-  const FileUpload = ({
-    id,
-    label,
-    acceptedFormats,
-    helpText,
-    icon,
-    onFileSelect,
-    selectedFile,
-    selectedFiles,
-    onRemove,
-    multiple = false,
-  }: {
-    id: string;
-    label: string;
-    acceptedFormats: string;
-    helpText: string;
-    icon: React.ReactNode;
-    onFileSelect: (files: FileList | null) => void;
-    selectedFile?: File | null;
-    selectedFiles?: File[];
-    onRemove: (index?: number) => void;
-    multiple?: boolean;
-  }) => {
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onFileSelect(e.target.files);
-    };
-
-    return (
-      <div className='mb-6'>
-        <label className='block text-sm font-medium text-gray-700 mb-2'>
-          {label}
-        </label>
-        <div className='mt-1'>
-          <label
-            htmlFor={id}
-            className='flex justify-center items-center px-6 py-4 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 cursor-pointer transition-colors'
-          >
-            <div className='space-y-1 text-center'>
-              {icon}
-              <div className='text-sm text-gray-600'>
-                <p className='pl-1'>{helpText}</p>
-              </div>
-            </div>
-            <input
-              id={id}
-              type='file'
-              accept={acceptedFormats}
-              onChange={handleFileChange}
-              className='sr-only'
-              multiple={multiple}
-            />
-          </label>
-        </div>
-
-        {/* Mostrar arquivo único selecionado */}
-        {selectedFile && !multiple && (
-          <div className='mt-2 flex items-center justify-between p-2 bg-gray-50 rounded-md'>
-            <div className='flex items-center'>
-              <FileText size={16} className='text-gray-500 mr-2' />
-              <span className='text-sm text-gray-900 truncate'>
-                {selectedFile.name}
-              </span>
-            </div>
-            <button
-              type='button'
-              onClick={() => onRemove()}
-              className='text-red-500 hover:text-red-700 transition-colors'
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-
-        {/* Mostrar múltiplos arquivos selecionados */}
-        {multiple && selectedFiles && selectedFiles.length > 0 && (
-          <div className='mt-2 space-y-2'>
-            {selectedFiles.map((file, index) => (
-              <div
-                key={index}
-                className='flex items-center justify-between p-2 bg-gray-50 rounded-md'
-              >
-                <div className='flex items-center'>
-                  <FileText size={16} className='text-gray-500 mr-2' />
-                  <span className='text-sm text-gray-900 truncate'>
-                    {file.name}
-                  </span>
-                </div>
-                <button
-                  type='button'
-                  onClick={() => onRemove(index)}
-                  className='text-red-500 hover:text-red-700 transition-colors'
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Componente SkillSelector reutilizável
-  const SkillSelector = ({
-    skills,
-    onChange,
-    availableSkills,
-  }: {
-    skills: Skill[];
-    onChange: (skills: Skill[]) => void;
-    availableSkills: string[];
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const handleAddSkill = (skillName: string) => {
-      if (skills.length >= 20) return; // Limite máximo de habilidades
-
-      const newSkill: Skill = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: skillName,
-        isPriority: skills.length < 5, // Primeiras 5 habilidades são prioritárias
-      };
-
-      onChange([...skills, newSkill]);
-      setIsOpen(false);
-    };
-
-    const handleRemoveSkill = (skillId: string) => {
-      const newSkills = skills.filter((skill) => skill.id !== skillId);
-      // Reajusta as prioridades após remover uma habilidade
-      const updatedSkills = newSkills.map((skill, index) => ({
-        ...skill,
-        isPriority: index < 5,
-      }));
-      onChange(updatedSkills);
-    };
-
-    const unusedSkills = availableSkills.filter(
-      (skill) => !skills.some((s) => s.name === skill)
-    );
-
-    return (
-      <div className='mt-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
-          Habilidades
-        </label>
-
-        <div className='relative'>
-          {/* Selected Skills */}
-          <div className='flex flex-wrap gap-2 mb-2'>
-            {skills.map((skill) => (
-              <div
-                key={skill.id}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  skill.isPriority
-                    ? 'bg-blue-100 text-blue-800 ring-1 ring-blue-400/30'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {skill.name}
-                <button
-                  type='button'
-                  onClick={() => handleRemoveSkill(skill.id)}
-                  className='ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors'
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Add Skill Button and Dropdown */}
-          {unusedSkills.length > 0 && (
-            <div className='relative'>
-              <button
-                type='button'
-                onClick={() => setIsOpen(!isOpen)}
-                className='flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
-              >
-                <Plus size={18} />
-                Adicionar Habilidade
-              </button>
-
-              {/* Skills Dropdown */}
-              {isOpen && (
-                <div className='absolute z-10 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto divide-y divide-gray-100'>
-                  {unusedSkills.map((skill) => (
-                    <button
-                      key={skill}
-                      type='button'
-                      onClick={() => handleAddSkill(skill)}
-                      className='w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors first:rounded-t-lg last:rounded-b-lg'
-                    >
-                      {skill}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Componente ProfilePicture reutilizável
-  const ProfilePicture = ({
-    src,
-    alt,
-    onImageChange,
-  }: {
-    src?: string;
-    alt: string;
-    onImageChange?: (file: File) => void;
-  }) => {
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file && onImageChange) {
-        onImageChange(file);
+    try {
+      if (!token) {
+        throw new Error('Você precisa estar logado para excluir sua conta');
       }
-    };
 
-    return (
-      <div className='relative w-36 h-36 mx-auto'>
-        <img
-          src={
-            src ||
-            'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'
-          }
-          alt={alt}
-          className='w-full h-full object-cover rounded-full'
-        />
-        <label
-          htmlFor='profile-picture'
-          className='absolute bottom-1 right-1 p-2 rounded-full bg-blue-500 text-white cursor-pointer transition-all hover:bg-blue-600'
-        >
-          <Camera size={20} />
-          <input
-            type='file'
-            id='profile-picture'
-            onChange={handleImageChange}
-            className='hidden'
-            accept='image/*'
-          />
-        </label>
-      </div>
-    );
-  };
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: token,
+        },
+      });
 
-  // Componente de LanguageSelector reutilizável
-  const LanguageSelector = () => {
-    return (
-      <div className='py-2 px-4 rounded-md bg-gray-200'>
-        <label
-          htmlFor='language'
-          className='block font-medium text-gray-800 mb-1'
-        >
-          Idioma
-        </label>
-        <div className='relative'>
-          <select
-            id='language'
-            value={selectedLanguage}
-            onChange={handleLanguageChange}
-            className='w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg py-2 px-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all'
-          >
-            {languages.map((lang) => (
-              <option key={lang.value} value={lang.value} className='py-2'>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700'>
-            <ChevronDown size={18} />
-          </div>
-        </div>
-      </div>
-    );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao excluir a conta.');
+      }
+
+      // Logout após exclusão da conta
+      logout();
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Erro ao excluir conta:', error);
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Ocorreu um erro ao excluir a conta. Tente novamente mais tarde.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -803,7 +663,7 @@ export const ProfileForm = () => {
         )}
 
         <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
-          {/* Left Column - User Profile & App Settings */}
+          {/* Left Column - User Profile & Basic Info */}
           <div className='md:col-span-1'>
             <div className='p-6 mb-6 transition-colors bg-white rounded-lg shadow'>
               <ProfilePicture
@@ -818,19 +678,173 @@ export const ProfileForm = () => {
             </div>
 
             <div className='p-6 transition-colors bg-white rounded-lg shadow'>
-              <h2 className='mb-4 text-xl font-bold'>
-                Configurações do Aplicativo
-              </h2>
-              <div className='space-y-4'>
-                <LanguageSelector />
-              </div>
+              <h2 className='mb-4 text-xl font-bold'>Informações básicas</h2>
+
+              <form>
+                <TextField
+                  id='name'
+                  label='Nome de usuário'
+                  required
+                  register={register}
+                  errors={errors}
+                  readOnly={true}
+                />
+
+                <TextField
+                  id='email'
+                  label='Endereço de e-mail'
+                  required
+                  type='email'
+                  placeholder='exemplo@email.com'
+                  register={register}
+                  errors={errors}
+                  readOnly={true}
+                />
+
+                <TextField
+                  id='location'
+                  label='Localização'
+                  placeholder='Ex: São Paulo, SP'
+                  register={register}
+                  errors={errors}
+                />
+
+                {/* Data de nascimento - apenas para candidatos */}
+                {user?.role === 'CANDIDATE' && (
+                  <div className='mb-4'>
+                    <label className='block mb-1 text-sm font-medium text-gray-700'>
+                      Data de Nascimento
+                    </label>
+                    <Popover.Root>
+                      <div className='relative'>
+                        <input
+                          type='text'
+                          value={
+                            birthDate ? format(birthDate, 'dd/MM/yyyy') : ''
+                          }
+                          readOnly
+                          className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          placeholder='DD/MM/AAAA'
+                        />
+                        <Popover.Trigger asChild>
+                          <button
+                            type='button'
+                            className='absolute text-gray-500 -translate-y-1/2 right-2 top-1/2 hover:text-gray-700'
+                          >
+                            <Calendar size={20} />
+                          </button>
+                        </Popover.Trigger>
+                      </div>
+                      <Popover.Portal>
+                        <Popover.Content className='z-50 p-2 bg-white rounded-lg shadow-lg'>
+                          <DayPicker
+                            mode='single'
+                            selected={birthDate || undefined}
+                            onSelect={handleDateSelect}
+                            className='border-none'
+                          />
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
+                  </div>
+                )}
+
+                {/* Botão de logout */}
+                <div className='mt-6'>
+                  <button
+                    type='button'
+                    onClick={handleLogout}
+                    className='cursor-pointer flex items-center justify-center w-full px-4 py-2 text-base font-medium text-gray-700 transition-colors bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500'
+                  >
+                    <LogOut className='w-5 h-5 mr-2' />
+                    Sair da conta
+                  </button>
+                </div>
+
+                {/* Botão para excluir conta */}
+                <div className='mt-4'>
+                  <Dialog.Root
+                    open={isDialogOpen}
+                    onOpenChange={setIsDialogOpen}
+                  >
+                    <Dialog.Trigger asChild>
+                      <button className='cursor-pointer flex items-center justify-center w-full px-4 py-2 text-base font-medium text-red-700 transition-colors bg-red-100 border border-red-300 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'>
+                        <Trash2 className='w-5 h-5 mr-2' />
+                        Excluir Conta
+                      </button>
+                    </Dialog.Trigger>
+
+                    <Dialog.Portal>
+                      <Dialog.Overlay className='fixed inset-0 bg-black opacity-30' />
+                      <Dialog.Content className='fixed inset-0 flex items-center justify-center p-4'>
+                        <div className='w-full max-w-md p-6 mx-auto bg-white rounded-lg shadow-lg'>
+                          <Dialog.Title className='text-lg font-bold text-gray-900'>
+                            Tem certeza que deseja excluir sua conta?
+                          </Dialog.Title>
+                          <Dialog.Description className='mt-2 text-sm text-gray-600'>
+                            Esta ação é irreversível e apagará todos os seus
+                            dados.
+                          </Dialog.Description>
+
+                          <div className='mt-4'>
+                            <label
+                              htmlFor='delete-confirmation'
+                              className='block text-sm font-medium text-gray-700 mb-1'
+                            >
+                              Para confirmar, digite "deletar" no campo abaixo:
+                            </label>
+                            <input
+                              type='text'
+                              id='delete-confirmation'
+                              value={deleteConfirmation}
+                              onChange={(e) =>
+                                setDeleteConfirmation(e.target.value)
+                              }
+                              className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500'
+                              placeholder='deletar'
+                            />
+                            {deleteError && (
+                              <p className='mt-1 text-xs text-red-600'>
+                                {deleteError}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className='flex justify-end mt-4'>
+                            <Dialog.Close asChild>
+                              <button className='px-4 py-2 mr-2 text-sm font-medium text-gray-700 transition-colors bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500'>
+                                Cancelar
+                              </button>
+                            </Dialog.Close>
+                            <button
+                              onClick={handleDeleteAccount}
+                              className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
+                            >
+                              {isLoading ? (
+                                <>
+                                  <span className='inline-block w-4 h-4 mr-2 align-middle border-2 border-white rounded-full border-t-transparent animate-spin'></span>
+                                  <span>Excluindo...</span>
+                                </>
+                              ) : (
+                                'Excluir Conta'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </Dialog.Content>
+                    </Dialog.Portal>
+                  </Dialog.Root>
+                </div>
+              </form>
             </div>
           </div>
 
-          {/* Right Column - User Data Form */}
+          {/* Right Column - User Professional Data Form */}
           <div className='md:col-span-2'>
             <div className='p-6 transition-colors bg-white rounded-lg shadow'>
-              <h2 className='mb-6 text-xl font-bold'>Dados do usuário</h2>
+              <h2 className='mb-6 text-xl font-bold'>
+                Informações complementares
+              </h2>
 
               {successMessage && (
                 <div className='px-4 py-3 mb-4 text-green-700 bg-green-100 border border-green-400 rounded'>
@@ -845,102 +859,222 @@ export const ProfileForm = () => {
               )}
 
               <form onSubmit={handleSubmit(updateUserProfile)}>
-                <TextField id='name' label='Nome completo' required />
+                {/* Renderização condicional com base no tipo de conta */}
+                {user?.role === 'CANDIDATE' ? (
+                  // Campos específicos para candidatos
+                  <>
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                      <SelectField
+                        id='education'
+                        label='Formação Acadêmica'
+                        options={educationOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.education}
+                        onChange={(e) => {
+                          const educationValue = e.target.value;
+                          setValue('education', educationValue);
+                          const isHigherEducation =
+                            higherEducationLevels.includes(educationValue);
+                          setShowCourseField(isHigherEducation);
 
-                <TextField
-                  id='email'
-                  label='Email'
-                  required
-                  type='email'
-                  placeholder='exemplo@email.com'
-                />
+                          if (!isHigherEducation) {
+                            setValue('course', '');
+                          }
+                        }}
+                      />
+
+                      <SelectField
+                        id='experienceYears'
+                        label='Experiência Profissional'
+                        options={experienceOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.experienceYears}
+                      />
+                    </div>
+
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                      <SelectField
+                        id='seniority'
+                        label='Nível de Senioridade'
+                        options={seniorityOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.seniority}
+                      />
+
+                      <SelectField
+                        id='availability'
+                        label='Disponibilidade'
+                        options={availabilityOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.availability}
+                      />
+                    </div>
+
+                    {/* Pretensão salarial para candidatos */}
+                    <div
+                      className={`grid grid-cols-1 gap-4 ${
+                        showCourseField ? 'md:grid-cols-2' : ''
+                      }`}
+                    >
+                      <TextField
+                        id='expectedSalary'
+                        label='Pretensão Salarial'
+                        placeholder='Ex: R$ 5.000,00'
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.expectedSalary}
+                      />
+
+                      {/* Campo de curso condicionalmente exibido para formações superiores */}
+                      {showCourseField && (
+                        <TextField
+                          id='course'
+                          label='Curso'
+                          placeholder='Ex: Ciência da Computação'
+                          register={register}
+                          errors={errors}
+                          defaultValue={user?.profile?.course}
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  // Campos específicos para empresas
+                  <>
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                      <SelectField
+                        id='industrySector'
+                        label='Setor/Indústria'
+                        options={industrySectorOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.industrySector}
+                      />
+
+                      <SelectField
+                        id='companySize'
+                        label='Porte da Empresa'
+                        options={companySizeOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.companySize}
+                      />
+                    </div>
+
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                      <TextField
+                        id='website'
+                        label='Site da empresa'
+                        placeholder='https://exemplo.com'
+                        register={register}
+                        errors={errors}
+                      />
+
+                      <SelectField
+                        id='workModel'
+                        label='Modelo de trabalho'
+                        options={workModelOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.workModel}
+                      />
+                    </div>
+
+                    <MultiSelectField
+                      id='benefits'
+                      label='Benefícios oferecidos'
+                      options={benefitsOptions}
+                      defaultValue={user?.profile?.benefits || []}
+                      onChange={handleBenefitsChange}
+                      helpText='Selecione os benefícios que sua empresa oferece'
+                    />
+                  </>
+                )}
 
                 <div className='mb-4'>
                   <label
-                    htmlFor='phone'
+                    htmlFor='summary'
                     className='block text-sm font-medium text-gray-700 mb-1'
                   >
-                    Celular
+                    {user?.role === 'CANDIDATE'
+                      ? 'Resumo Profissional'
+                      : 'Sobre a empresa'}{' '}
+                    <span className='text-xs text-gray-500'>
+                      (máx. 150 caracteres)
+                    </span>
                   </label>
-                  <input
-                    type='tel'
-                    id='phone'
-                    placeholder='(00) 00000-0000'
-                    defaultValue={user?.profile?.phone || ''}
-                    {...register('phone')}
+                  <textarea
+                    id='summary'
+                    {...register('summary')}
+                    rows={3}
+                    maxLength={150}
+                    placeholder={
+                      user?.role === 'CANDIDATE'
+                        ? 'Breve descrição sobre você, suas habilidades e objetivos profissionais'
+                        : 'Breve descrição sobre sua empresa, cultura e valores'
+                    }
                     className='w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors'
+                    defaultValue={user?.profile?.summary || ''}
                   />
-                  {errors.phone && (
+                  {errors.summary && (
                     <p className='mt-1 text-xs text-red-600'>
-                      {errors.phone.message}
+                      {errors.summary.message}
                     </p>
                   )}
                 </div>
 
-                <div className='mb-4'>
-                  <label className='block mb-1 text-sm font-medium text-gray-700'>
-                    Data de Nascimento
-                  </label>
-                  <Popover.Root>
-                    <div className='relative'>
-                      <input
-                        type='text'
-                        value={birthDate ? format(birthDate, 'dd/MM/yyyy') : ''}
-                        readOnly
-                        className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        placeholder='DD/MM/AAAA'
-                      />
-                      <Popover.Trigger asChild>
-                        <button
-                          type='button'
-                          className='absolute text-gray-500 -translate-y-1/2 right-2 top-1/2 hover:text-gray-700'
-                        >
-                          <Calendar size={20} />
-                        </button>
-                      </Popover.Trigger>
-                    </div>
-                    <Popover.Portal>
-                      <Popover.Content className='z-50 p-2 bg-white rounded-lg shadow-lg'>
-                        <DayPicker
-                          mode='single'
-                          selected={birthDate || undefined}
-                          onSelect={handleDateSelect}
-                          className='border-none'
-                        />
-                      </Popover.Content>
-                    </Popover.Portal>
-                  </Popover.Root>
-                </div>
+                {/* Campos específicos por tipo de usuário */}
+                {user?.role === 'CANDIDATE' ? (
+                  <>
+                    {/* Campos exclusivos para candidatos */}
+                    <LanguageSkillSelector
+                      languageSkills={user?.profile?.languageSkills || []}
+                      onChange={(updatedLanguages: LanguageSkill[]) => {
+                        setUser((prev) => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            profile: {
+                              ...(prev.profile || {}),
+                              languageSkills: updatedLanguages,
+                            },
+                          };
+                        });
+                      }}
+                    />
 
-                <FileUpload
-                  id='resume'
-                  label='Currículo'
-                  acceptedFormats='.pdf,.doc,.docx'
-                  helpText='Clique para selecionar um arquivo PDF, DOC ou DOCX'
-                  icon={<FileText className='w-10 h-10 text-gray-400' />}
-                  onFileSelect={handleResumeUpload}
-                  selectedFile={user?.profile?.resume}
-                  onRemove={removeResume}
-                  multiple={false}
-                />
+                    <SkillSelector
+                      skills={user?.profile?.skills || []}
+                      onChange={handleSkillChange}
+                      availableSkills={predefinedSkills}
+                    />
+                  </>
+                ) : (
+                  <>
+                    {/* Campos exclusivos para empresas */}
+                    <MultiSelectField
+                      id='hiringAreas'
+                      label='Áreas de contratação'
+                      options={hiringAreasOptions}
+                      defaultValue={user?.profile?.hiringAreas || []}
+                      onChange={handleHiringAreasChange}
+                      helpText='Selecione as áreas em que sua empresa costuma contratar'
+                    />
 
-                <FileUpload
-                  id='certifications'
-                  label='Certificações'
-                  acceptedFormats='.pdf,.jpg,.jpeg,.png'
-                  multiple
-                  helpText='Clique para adicionar certificação (PDF, JPG, JPEG, PNG)'
-                  icon={<CheckCircle className='w-10 h-10 text-gray-400' />}
-                  onFileSelect={handleCertificationUpload}
-                  selectedFiles={user?.profile?.certifications}
-                  onRemove={removeCertification}
-                />
-
-                <SkillSelector
-                  skills={user?.profile?.skills || []}
-                  onChange={handleSkillChange}
-                  availableSkills={predefinedSkills}
-                />
+                    <MultiSelectField
+                      id='companyTechnologies'
+                      label='Tecnologias utilizadas'
+                      options={companyTechnologiesOptions}
+                      defaultValue={user?.profile?.companyTechnologies || []}
+                      onChange={handleCompanyTechnologiesChange}
+                      helpText='Selecione as principais tecnologias utilizadas na empresa'
+                    />
+                  </>
+                )}
 
                 <div className='mt-6'>
                   <button

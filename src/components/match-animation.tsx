@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Role } from '../utils/types';
@@ -8,12 +9,16 @@ interface MatchAnimationProps {
   matchedUserName: string;
   userRole: Role;
   onClose: () => void;
+  userProfileImage?: string; // Imagem do usuário atual
+  matchedUserProfileImage?: string; // Imagem do usuário com quem deu match
 }
 
 export const MatchAnimation = ({
   matchedUserName,
   userRole,
   onClose,
+  userProfileImage,
+  matchedUserProfileImage,
 }: MatchAnimationProps) => {
   const [animationStage, setAnimationStage] = useState(0);
 
@@ -30,6 +35,69 @@ export const MatchAnimation = ({
       clearTimeout(timer3);
     };
   }, []);
+
+  // Função para renderizar a imagem de perfil ou o fallback de ícone
+  const renderProfileImage = (
+    imageSrc: string | undefined,
+    isCurrentUser: boolean
+  ) => {
+    if (imageSrc) {
+      return (
+        <div className='w-full h-full relative overflow-hidden bg-gray-100'>
+          <Image
+            src={imageSrc}
+            alt='Foto de perfil'
+            layout='fill'
+            objectFit='cover'
+            className='rounded-full'
+          />
+        </div>
+      );
+    } else {
+      // Renderiza o ícone SVG como fallback
+      return (
+        <div className='w-full h-full flex items-center justify-center bg-white'>
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width='32'
+            height='32'
+            fill='none'
+            viewBox='0 0 24 24'
+            stroke='#004aad'
+            strokeWidth='2'
+          >
+            {isCurrentUser ? (
+              isCandidate ? (
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                />
+              ) : (
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                />
+              )
+            ) : isCandidate ? (
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+              />
+            ) : (
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+              />
+            )}
+          </svg>
+        </div>
+      );
+    }
+  };
 
   return (
     <div
@@ -95,60 +163,12 @@ export const MatchAnimation = ({
         </h1>
 
         <div className='flex items-center justify-center mb-8 relative z-10'>
-          <div className='w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#e6eeff] shadow-lg transform -translate-x-4 bg-white'>
-            <div className='w-full h-full flex items-center justify-center bg-white'>
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                width='32'
-                height='32'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='#004aad'
-                strokeWidth='2'
-              >
-                {isCandidate ? (
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                  />
-                ) : (
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
-                  />
-                )}
-              </svg>
-            </div>
+          <div className='w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#e6eeff] shadow-lg transform -translate-x-4'>
+            {renderProfileImage(userProfileImage, true)}
           </div>
 
-          <div className='w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#e6eeff] shadow-lg transform translate-x-4 bg-white'>
-            <div className='w-full h-full flex items-center justify-center bg-white'>
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                width='32'
-                height='32'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='#004aad'
-                strokeWidth='2'
-              >
-                {isCandidate ? (
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
-                  />
-                ) : (
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                  />
-                )}
-              </svg>
-            </div>
+          <div className='w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-[#e6eeff] shadow-lg transform translate-x-4'>
+            {renderProfileImage(matchedUserProfileImage, false)}
           </div>
         </div>
 

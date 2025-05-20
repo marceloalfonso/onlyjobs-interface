@@ -10,26 +10,25 @@ import { isUserSignedIn } from '../../utils/auth';
 import { formatTimestamp } from '../../utils/date-formatters';
 import { Message, User } from '../../utils/types';
 
-interface Chat {
+type Chat = {
   id: string;
   otherUser: User;
   messages: Message[];
-}
+};
 
-interface ChatPreview {
+type ChatPreview = {
   id: string;
-  userId: string;
   name: string;
-  image: string;
+  picture: string;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
-}
+};
 
-interface UnreadData {
+type UnreadData = {
   chatId: string;
   unreadMessagesCount: number;
-}
+};
 
 async function getUserChats(token: string) {
   try {
@@ -210,10 +209,9 @@ export default function Chats() {
 
           return {
             id: chat.id,
-            userId: otherUser.id,
             name: otherUser.name,
-            image:
-              otherUser.profile?.avatar || 'https://i.pravatar.cc/150?img=1',
+            picture:
+              otherUser.profile.picture || 'https://i.pravatar.cc/150?img=1',
             lastMessage: lastMessage ? lastMessage.content : '',
             lastMessageTime: lastMessage
               ? formatTimestamp(lastMessage.createdAt, 'dynamic')
@@ -591,7 +589,7 @@ export default function Chats() {
                     >
                       <div className='relative'>
                         <img
-                          src={chatPreview.image}
+                          src={chatPreview.picture}
                           alt={chatPreview.name}
                           className='object-cover w-12 h-12 border-2 border-gray-200 rounded-full'
                         />
@@ -659,7 +657,7 @@ export default function Chats() {
                     )}
                     <div className='relative'>
                       <img
-                        src={currentChatPreview.image}
+                        src={currentChatPreview.picture}
                         alt={currentChatPreview.name}
                         className='object-cover w-10 h-10 border-2 border-gray-200 rounded-full'
                       />
