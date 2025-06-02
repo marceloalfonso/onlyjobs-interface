@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { z } from 'zod';
+import { hiringAreasOptions } from '../utils/constants';
 import {
   calculateRotation,
   calculateScale,
@@ -20,7 +21,7 @@ const cardDataSchema = z.object({
   benefits: z.array(z.string()),
   companySize: z.string(),
   workModel: z.string(),
-  salary: z.string(),
+  workSchedule: z.string(), // Campo de jornada de trabalho
   profilePicture: z.string().optional(),
   summary: z.string().optional(),
   location: z.string().optional(),
@@ -28,8 +29,9 @@ const cardDataSchema = z.object({
   languages: z.array(z.string()).optional(),
   age: z.number().optional(),
   hiringAreas: z.array(z.string()).optional(),
-  industrySector: z.string().optional(), // Setor/Indústria
+  industrySector: z.string().optional(), // Setor
   website: z.string().optional(), // Site da empresa
+  salary: z.string().optional(), // Pretensão salarial
 });
 
 export type CardData = z.infer<typeof cardDataSchema>;
@@ -183,7 +185,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
             )}
             {/* Localização (empresa) */}
             {data.location && (
-              <div className='text-gray-500 text-sm flex items-center mb-2'>
+              <div className='text-gray-500 text-sm flex items-center mb-1'>
                 <span>{data.location}</span>
               </div>
             )}
@@ -225,23 +227,33 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
           {/* Card de Empresa - visão do candidato */}
           {userRole === 'CANDIDATE' && (
             <div className='space-y-3'>
-              {/* Áreas de contratação */}
+              {/* Áreas em contratação */}
               {data.hiringAreas && data.hiringAreas.length > 0 && (
                 <div>
                   <h3 className='text-sm font-semibold text-gray-700 mb-1.5'>
-                    Áreas de Contratação
+                    Áreas em contratação
                   </h3>
                   <div className='flex flex-wrap gap-1.5'>
                     {[...data.hiringAreas]
                       .sort((a, b) => a.localeCompare(b))
-                      .map((area, index) => (
-                        <span
-                          key={index}
-                          className='bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-sm font-medium'
-                        >
-                          {area}
-                        </span>
-                      ))}
+                      .map((area, index) => {
+                        // Encontrar o label correspondente ao value
+                        const areaOption = hiringAreasOptions.find(
+                          (option) => option.value === area
+                        );
+                        const displayLabel = areaOption
+                          ? areaOption.label
+                          : area;
+
+                        return (
+                          <span
+                            key={index}
+                            className='bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-sm font-medium'
+                          >
+                            {displayLabel}
+                          </span>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -250,7 +262,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
               {data.stack.length > 0 && (
                 <div>
                   <h3 className='text-sm font-semibold text-gray-700 mb-1.5'>
-                    Tecnologias
+                    Tecnologias mais usadas
                   </h3>
                   <div className='flex flex-wrap gap-1.5'>
                     {[...data.stack]
@@ -271,15 +283,15 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
               {data.benefits.length > 0 && (
                 <div>
                   <h3 className='text-sm font-semibold text-gray-700 mb-1.5'>
-                    Benefícios
+                    Benefícios oferecidos
                   </h3>
-                  <div className='grid grid-cols-3 gap-x-4 gap-y-1'>
+                  <div className='flex flex-wrap gap-2'>
                     {[...data.benefits]
                       .sort((a, b) => a.localeCompare(b))
                       .map((benefit, index) => (
                         <div
                           key={index}
-                          className='flex items-center text-sm text-gray-700 whitespace-nowrap'
+                          className='bg-gray-50 px-2 py-1 rounded text-sm text-gray-700 break-words'
                         >
                           <span>{benefit}</span>
                         </div>
@@ -298,16 +310,20 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
                 </div>
 
                 <div className='p-2.5 text-center rounded-lg bg-gradient-to-br from-blue-50 to-sky-50 shadow-sm'>
-                  <h4 className='text-xs text-gray-600 mt-0.5'>Modelo</h4>
+                  <h4 className='text-xs text-gray-600 mt-0.5'>
+                    Modelo de trabalho
+                  </h4>
                   <p className='text-sm text-gray-800 font-medium'>
                     {data.workModel}
                   </p>
                 </div>
 
                 <div className='p-2.5 text-center rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 shadow-sm'>
-                  <h4 className='text-xs text-gray-600 mt-0.5'>Salário</h4>
+                  <h4 className='text-xs text-gray-600 mt-0.5'>
+                    Jornada de trabalho
+                  </h4>
                   <p className='text-sm text-gray-800 font-medium'>
-                    {data.salary}
+                    {data.workSchedule}
                   </p>
                 </div>
               </div>
@@ -388,7 +404,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
               {data.stack.length > 0 && (
                 <div>
                   <h3 className='text-sm font-semibold text-gray-700 mb-1.5'>
-                    Habilidades Principais
+                    Habilidades principais
                   </h3>
                   <div className='flex flex-wrap gap-1.5'>
                     {[...data.stack]
@@ -409,7 +425,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
               {data.languages && data.languages.length > 0 && (
                 <div>
                   <h3 className='text-sm font-semibold text-gray-700 mb-1.5'>
-                    Idiomas
+                    Idiomas de domínio
                   </h3>
                   <div className='flex flex-wrap gap-1.5'>
                     {[...data.languages]
@@ -465,7 +481,7 @@ export const Card = ({ data, userRole, onAccept, onReject }: CardProps) => {
                 </div>
                 <div className='bg-blue-50 rounded p-2 text-center'>
                   <div className='text-xs font-semibold text-gray-700'>
-                    Pretensão
+                    Pretensão salarial
                   </div>
                   <div className='text-sm font-medium'>{data.salary}</div>
                 </div>

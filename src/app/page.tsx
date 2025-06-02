@@ -6,117 +6,20 @@ import { Card, CardData } from '../components/card';
 import { Header } from '../components/header';
 import { MatchAnimation } from '../components/match-animation';
 import { isUserSignedIn } from '../utils/auth';
+import {
+  availabilityOptions,
+  benefitsOptions,
+  companySizeOptions,
+  companyTechnologiesOptions,
+  educationOptions,
+  experienceOptions,
+  industrySectorOptions,
+  seniorityOptions,
+  workModelOptions,
+  workScheduleOptions,
+} from '../utils/constants';
 import { calculateAge } from '../utils/date-formatters';
 import { Skill, User } from '../utils/types';
-
-// Opções de seleção para usar na formatação dos dados dos cards
-const educationOptions = [
-  { value: 'fundamental', label: 'Ensino Fundamental' },
-  { value: 'medio', label: 'Ensino Médio' },
-  { value: 'tecnico', label: 'Ensino Técnico' },
-  { value: 'superior_incompleto', label: 'Superior Incompleto' },
-  { value: 'superior_cursando', label: 'Superior em Andamento' },
-  { value: 'superior', label: 'Superior Completo' },
-  { value: 'posgraduacao', label: 'Pós-graduação' },
-  { value: 'mestrado', label: 'Mestrado' },
-  { value: 'doutorado', label: 'Doutorado' },
-];
-
-const experienceOptions = [
-  { value: 'sem_experiencia', label: 'Sem experiência' },
-  { value: 'menos_1', label: 'Menos de 1 ano' },
-  { value: '1_2', label: '1-2 anos' },
-  { value: '3_5', label: '3-5 anos' },
-  { value: '6_10', label: '6-10 anos' },
-  { value: 'mais_10', label: 'Mais de 10 anos' },
-];
-
-const seniorityOptions = [
-  { value: 'estagiario', label: 'Estagiário' },
-  { value: 'junior', label: 'Júnior' },
-  { value: 'pleno', label: 'Pleno' },
-  { value: 'senior', label: 'Sênior' },
-  { value: 'especialista', label: 'Especialista' },
-  { value: 'lideranca', label: 'Liderança/Gestão' },
-];
-
-const availabilityOptions = [
-  { value: 'integral', label: 'Tempo Integral' },
-  { value: 'parcial', label: 'Meio Período' },
-  { value: 'freelancer', label: 'Freelancer/Projetos' },
-  { value: 'estagio', label: 'Estágio' },
-  { value: 'aprendiz', label: 'Jovem Aprendiz' },
-];
-
-// Opções específicas para empresas
-const industrySectorOptions = [
-  { value: 'agronegocio', label: 'Agronegócio' },
-  { value: 'alimentacao', label: 'Alimentação' },
-  { value: 'construcao', label: 'Construção Civil' },
-  { value: 'educacao', label: 'Educação' },
-  { value: 'financas', label: 'Finanças' },
-  { value: 'industria', label: 'Indústria' },
-  { value: 'logistica', label: 'Logística/Transporte' },
-  { value: 'marketing', label: 'Marketing/Publicidade' },
-  { value: 'outro', label: 'Outro' },
-  { value: 'saude', label: 'Saúde' },
-  { value: 'servicos', label: 'Serviços' },
-  { value: 'tecnologia', label: 'Tecnologia' },
-  { value: 'telecomunicacoes', label: 'Telecomunicações' },
-  { value: 'turismo', label: 'Turismo/Hotelaria' },
-  { value: 'varejo', label: 'Varejo' },
-];
-
-const companySizeOptions = [
-  { value: 'startup', label: 'Startup' },
-  { value: 'pequena', label: 'Pequena' },
-  { value: 'media', label: 'Média' },
-  { value: 'grande', label: 'Grande' },
-  { value: 'multinacional', label: 'Multinacional' },
-];
-
-const workModelOptions = [
-  { value: 'hibrido', label: 'Híbrido' },
-  { value: 'presencial', label: 'Presencial' },
-  { value: 'remoto', label: 'Remoto' },
-];
-
-const benefitsOptions = [
-  { value: 'auxilio_creche', label: 'Auxílio-creche' },
-  { value: 'home_office', label: 'Auxílio home office' },
-  { value: 'bonus', label: 'Bônus/Comissões' },
-  { value: 'cursos', label: 'Cursos/Capacitação' },
-  { value: 'day_off', label: 'Day off de aniversário' },
-  { value: 'gympass', label: 'Gympass/Academia' },
-  { value: 'horario_flexivel', label: 'Horário flexível' },
-  { value: 'participacao_lucros', label: 'Participação nos lucros' },
-  { value: 'plano_odontologico', label: 'Plano odontológico' },
-  { value: 'plano_saude', label: 'Plano de saúde' },
-  { value: 'seguro_vida', label: 'Seguro de vida' },
-  { value: 'vale_alimentacao', label: 'Vale-alimentação' },
-  { value: 'vale_refeicao', label: 'Vale-refeição' },
-];
-
-const companyTechnologiesOptions = [
-  { value: 'aws', label: 'AWS' },
-  { value: 'azure', label: 'Azure' },
-  { value: 'c_sharp', label: 'C#' },
-  { value: 'data_science', label: 'Ciência de Dados' },
-  { value: 'cloud', label: 'Cloud Computing' },
-  { value: 'docker', label: 'Docker' },
-  { value: 'gcp', label: 'Google Cloud' },
-  { value: 'ia', label: 'Inteligência Artificial' },
-  { value: 'java', label: 'Java' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'kubernetes', label: 'Kubernetes' },
-  { value: 'machine_learning', label: 'Machine Learning' },
-  { value: 'node', label: 'Node.js' },
-  { value: 'php', label: 'PHP' },
-  { value: 'python', label: 'Python' },
-  { value: 'react', label: 'React' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'typescript', label: 'TypeScript' },
-];
 
 async function getNotLikedUsers(token: string) {
   try {
@@ -166,6 +69,16 @@ async function sendLike(token: string, toUserId: string) {
   } catch (err) {
     return { likeId: null, chatId: null, isMatch: false };
   }
+}
+
+// Função para embaralhar array usando algoritmo Fisher-Yates
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 export default function Home() {
@@ -293,7 +206,7 @@ export default function Home() {
                     // Informações adicionais da empresa
                     companySize: (() => {
                       const sizeValue = notLikedUser.profile?.companySize;
-                      if (!sizeValue) return 'Não informado';
+                      if (!sizeValue) return '-';
                       const sizeOption = companySizeOptions.find(
                         (option) => option.value === sizeValue
                       );
@@ -301,13 +214,23 @@ export default function Home() {
                     })(),
                     workModel: (() => {
                       const modelValue = notLikedUser.profile?.workModel;
-                      if (!modelValue) return 'Não informado';
+                      if (!modelValue) return '-';
                       const modelOption = workModelOptions.find(
                         (option) => option.value === modelValue
                       );
                       return modelOption ? modelOption.label : modelValue;
                     })(),
-                    salary: notLikedUser.profile?.salary || 'A combinar',
+                    workSchedule: (() => {
+                      const scheduleValue = notLikedUser.profile?.workSchedule;
+                      if (!scheduleValue) return '-';
+                      const scheduleOption = workScheduleOptions.find(
+                        (option) => option.value === scheduleValue
+                      );
+                      return scheduleOption
+                        ? scheduleOption.label
+                        : scheduleValue;
+                    })(),
+                    salary: notLikedUser.profile?.expectedSalary || '-',
                     profilePicture: notLikedUser.profile?.picture || undefined,
                     // Adicionando os campos extras
                     location: notLikedUser.profile?.location || undefined,
@@ -405,7 +328,7 @@ export default function Home() {
                     benefits: [
                       (() => {
                         const edu = notLikedUser.profile?.education;
-                        if (!edu) return 'Formação não informada';
+                        if (!edu) return 'Não informada';
                         const eduOption = educationOptions.find(
                           (option) => option.value === edu
                         );
@@ -439,7 +362,7 @@ export default function Home() {
                     // Anos de experiência
                     companySize: (() => {
                       const exp = notLikedUser.profile?.experienceYears;
-                      if (!exp) return 'Não informado';
+                      if (!exp) return '-';
                       const expOption = experienceOptions.find(
                         (option) => option.value === exp
                       );
@@ -448,15 +371,14 @@ export default function Home() {
                     // Disponibilidade
                     workModel: (() => {
                       const avail = notLikedUser.profile?.availability;
-                      if (!avail) return 'Não informado';
+                      if (!avail) return '-';
                       const availOption = availabilityOptions.find(
                         (option) => option.value === avail
                       );
                       return availOption ? availOption.label : avail;
                     })(),
-                    // Pretensão salarial (adicionado)
-                    salary:
-                      notLikedUser.profile?.expectedSalary || 'A combinar',
+                    workSchedule: notLikedUser.profile?.expectedSalary || '-',
+                    salary: notLikedUser.profile?.expectedSalary || '-',
                     profilePicture: notLikedUser.profile?.picture || undefined,
                     // Novos campos para o card redesenhado
                     summary: notLikedUser.profile?.summary || undefined,
@@ -468,7 +390,10 @@ export default function Home() {
               }
             );
 
-            setCardsData(formattedCardsData);
+            // Embaralhar os cards antes de definir no estado
+            const shuffledCardsData =
+              shuffleArray<CardData>(formattedCardsData);
+            setCardsData(shuffledCardsData);
           } else {
             setCardsData([]);
           }
@@ -555,18 +480,20 @@ export default function Home() {
         <div className='flex flex-col flex-grow px-4 py-4'>
           <div className='relative flex items-center justify-center w-full max-w-6xl mx-auto'>
             <div className='absolute flex-col items-center hidden font-medium text-red-400 -translate-y-1/2 md:flex left-4 top-1/2'>
-              <p className='text-base font-medium text-center md:text-lg'>
-                Arraste para
-                <br />
-                recusar
-              </p>
+              {cardsData.length > 0 && (
+                <p className='text-base font-medium text-center md:text-lg'>
+                  Arraste para
+                  <br />
+                  recusar
+                </p>
+              )}
             </div>
 
             <div className='w-full max-w-lg mx-auto'>
               {cardsData.length === 0 ? (
                 <div className='p-6 text-center bg-white shadow-xl rounded-xl'>
                   <h3 className='mb-3 text-xl font-light text-gray-800'>
-                    Nenhum match disponível
+                    Nenhum perfil disponível para visualização
                   </h3>
                   <p className='text-gray-600'>
                     Volte mais tarde para ver novas oportunidades
@@ -645,11 +572,13 @@ export default function Home() {
             </div>
 
             <div className='absolute flex-col items-center hidden font-medium text-green-400 -translate-y-1/2 md:flex right-4 top-1/2'>
-              <p className='text-base font-medium text-center md:text-lg'>
-                Arraste para
-                <br />
-                aceitar
-              </p>
+              {cardsData.length > 0 && (
+                <p className='text-base font-medium text-center md:text-lg'>
+                  Arraste para
+                  <br />
+                  aceitar
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -62,6 +62,7 @@ export interface Profile {
   companySize?: string;
   website?: string;
   workModel?: string;
+  workSchedule?: string; // Campo de jornada de trabalho
   benefits?: string[];
   hiringAreas?: string[];
   companyTechnologies?: string[];

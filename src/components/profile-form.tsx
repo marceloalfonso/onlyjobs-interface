@@ -26,6 +26,7 @@ import {
   predefinedSkills,
   seniorityOptions,
   workModelOptions,
+  workScheduleOptions,
 } from '../utils/constants';
 import { LanguageSkill, Skill, User } from '../utils/types';
 import { LanguageSkillSelector } from './language-skill-selector';
@@ -59,6 +60,7 @@ const profileFormSchema = z.object({
   companySize: z.string().optional(),
   website: z.string().optional(),
   workModel: z.string().optional(),
+  workSchedule: z.string().optional(), // Campo de jornada de trabalho
   benefits: z.array(z.string()).optional(),
   hiringAreas: z.array(z.string()).optional(),
   companyTechnologies: z.array(z.string()).optional(),
@@ -209,6 +211,10 @@ export const ProfileForm = () => {
           updatedProfile.workModel = formData.workModel;
         }
 
+        if (formData.workSchedule) {
+          updatedProfile.workSchedule = formData.workSchedule;
+        }
+
         // Incluir áreas de contratação se existirem
         if (
           user?.profile?.hiringAreas &&
@@ -227,7 +233,7 @@ export const ProfileForm = () => {
           updatedProfile.companyTechnologies = user.profile.companyTechnologies;
         }
 
-        // Incluir os benefícios se existirem
+        // Incluir os benefícios se existirem - apenas para empresas
         if (user?.profile?.benefits && Array.isArray(user.profile.benefits)) {
           updatedProfile.benefits = user.profile.benefits;
         }
@@ -394,14 +400,22 @@ export const ProfileForm = () => {
           else if (userData.role === 'COMPANY') {
             setValue('industrySector', userData.profile?.industrySector || '');
             setValue('companySize', userData.profile?.companySize || '');
-            setValue('website', userData.profile?.website || '');
             setValue('workModel', userData.profile?.workModel || '');
+            setValue('workSchedule', userData.profile?.workSchedule || '');
           }
 
           if (userData.profile?.birthDate) {
             const birthDate = new Date(userData.profile.birthDate);
             setBirthDate(birthDate);
             setValue('birthDate', birthDate);
+          }
+
+          // Adicionando inicialização para o campo de pretensão salarial no carregamento do perfil
+          setValue('expectedSalary', userData.profile?.expectedSalary || '');
+
+          // Formata o valor da pretensão salarial se existir
+          if (userData.profile?.expectedSalary) {
+            setSalaryInputValue(userData.profile.expectedSalary);
           }
         }
       } catch (error: any) {
@@ -547,34 +561,121 @@ export const ProfileForm = () => {
 
   // Manipuladores para os campos personalizados que não são controlados pelo React Hook Form
   const handleDateSelect = (date: Date | undefined) => {
+    if (date && isDateInFuture(date)) return;
+
     setBirthDate(date || null);
     setValue('birthDate', date || null);
   };
 
-  const handleProfilePictureChange = (file: File) => {
-    setProfilePicture(file);
-
-    // Preview da imagem
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setProfileImageSrc(e.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+  // Função para verificar se uma data está no futuro
+  const isDateInFuture = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Ignora o tempo
+    return date > today;
   };
 
-  const handleSkillChange = (updatedSkills: Skill[]) => {
-    setUser((prev: User | null) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        profile: {
-          ...(prev.profile || {}),
-          skills: updatedSkills,
-        },
-      };
-    });
+  // Função para formatar a data conforme digitada
+  const formatBirthDate = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    let numbers = value.replace(/\D/g, '');
+
+    // Limita ao máximo de 8 dígitos (DDMMYYYY)
+    numbers = numbers.slice(0, 8);
+
+    // Formata conforme digita
+    let formattedDate = '';
+
+    if (numbers.length > 0) {
+      // Adiciona os dígitos do dia
+      formattedDate = numbers.slice(0, 2);
+
+      // Adiciona a primeira barra após os dígitos do dia
+      if (numbers.length > 2) {
+        formattedDate += '/' + numbers.slice(2, 4);
+
+        // Adiciona a segunda barra e os dígitos do ano
+        if (numbers.length > 4) {
+          formattedDate += '/' + numbers.slice(4);
+        }
+      }
+    }
+
+    return formattedDate;
+  };
+
+  // Função para converter string formatada para objeto Date
+  const parseDateString = (dateString: string) => {
+    if (!dateString || dateString.length !== 10) return null;
+
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Mês em JavaScript começa em 0
+    const year = parseInt(parts[2], 10);
+
+    // Validações básicas
+    if (
+      isNaN(day) ||
+      isNaN(month) ||
+      isNaN(year) ||
+      day < 1 ||
+      day > 31 ||
+      month < 0 ||
+      month > 11 ||
+      year < 1900 ||
+      year > 2100 ||
+      parts[2].length !== 4 // Garante que o ano tenha exatamente 4 dígitos
+    ) {
+      return null;
+    }
+
+    const date = new Date(year, month, day);
+
+    // Verifica se a data é válida (ex: 31/02/2023 não é válido)
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  };
+
+  // Estado para controlar o input da data formatada
+  const [dateInputValue, setDateInputValue] = useState('');
+  const [dateError, setDateError] = useState('');
+
+  // Função para lidar com a alteração no input da data
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatBirthDate(e.target.value);
+    setDateInputValue(formattedValue);
+    setDateError('');
+
+    // Limpa a data atual até que uma nova data válida seja inserida
+    setBirthDate(null);
+    setValue('birthDate', null);
+
+    // Só valida se o valor estiver completo (DD/MM/YYYY)
+    if (formattedValue.length === 10) {
+      const parsedDate = parseDateString(formattedValue);
+
+      if (parsedDate) {
+        if (isDateInFuture(parsedDate)) {
+          setDateError('Data não pode ser no futuro');
+        } else {
+          setBirthDate(parsedDate);
+          setValue('birthDate', parsedDate);
+        }
+      } else {
+        setDateError('Data inválida');
+      }
+    } else if (formattedValue.length > 0) {
+      // Mostra mensagem de erro se a data estiver incompleta
+      setDateError('Digite a data completa no formato DD/MM/AAAA');
+    }
   };
 
   // Função para excluir conta
@@ -619,6 +720,103 @@ export const ProfileForm = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleProfilePictureChange = (file: File) => {
+    setProfilePicture(file);
+
+    // Preview da imagem
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setProfileImageSrc(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSkillChange = (updatedSkills: Skill[]) => {
+    setUser((prev: User | null) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        profile: {
+          ...(prev.profile || {}),
+          skills: updatedSkills,
+        },
+      };
+    });
+  };
+
+  // Estado para controlar erros de validação customizados
+  const [formHasErrors, setFormHasErrors] = useState(false);
+
+  // Função para verificar todos os erros do formulário antes da submissão
+  const checkFormValidity = () => {
+    // Verifica se há erro na data de nascimento
+    if (user?.role === 'CANDIDATE' && dateError) {
+      return false;
+    }
+    return true;
+  };
+
+  // Manipulador de submit modificado para verificar erros antes de enviar
+  const onSubmit = async (formData: ProfileFormData) => {
+    // Verifica se o formulário está válido (incluindo validações não capturadas pelo React Hook Form)
+    if (!checkFormValidity()) {
+      setFormHasErrors(true);
+      setError('Por favor, corrija os erros no formulário antes de salvar.');
+      return;
+    }
+
+    setFormHasErrors(false);
+    await updateUserProfile(formData);
+  };
+
+  // Estado para controlar o input da pretensão salarial formatada
+  const [salaryInputValue, setSalaryInputValue] = useState('');
+
+  // Função para formatar valores monetários
+  const formatCurrency = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+
+    // Se não houver números, retorna string vazia
+    if (!numbers) return '';
+
+    // Converte para número e formata com casas decimais
+    const amount = parseFloat(numbers) / 100;
+
+    // Formata com separadores de milhares e casas decimais
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Função para lidar com a alteração no input de salário
+  const handleSalaryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+
+    // Limpa o campo completamente se o usuário apagar todo o conteúdo
+    if (!rawValue.trim()) {
+      setSalaryInputValue('');
+      setValue('expectedSalary', '');
+      return;
+    }
+
+    // Remove formatação para obter apenas os números
+    const numericValue = rawValue.replace(/\D/g, '');
+
+    // Formata o valor para exibição
+    const formattedValue = numericValue ? formatCurrency(numericValue) : '';
+
+    // Atualiza o estado com o valor formatado
+    setSalaryInputValue(formattedValue);
+
+    // Atualiza o valor no formulário (guardando apenas o valor formatado)
+    setValue('expectedSalary', formattedValue);
   };
 
   if (isLoading) {
@@ -709,23 +907,36 @@ export const ProfileForm = () => {
                   errors={errors}
                 />
 
+                {/* Website (apenas para empresas) */}
+                {user?.role === 'COMPANY' && (
+                  <TextField
+                    id='website'
+                    label='Website'
+                    placeholder='https://exemplo.com'
+                    register={register}
+                    errors={errors}
+                    defaultValue={user?.profile?.website}
+                  />
+                )}
+
                 {/* Data de nascimento - apenas para candidatos */}
                 {user?.role === 'CANDIDATE' && (
                   <div className='mb-4'>
                     <label className='block mb-1 text-sm font-medium text-gray-700'>
-                      Data de Nascimento
+                      Data de nascimento
                     </label>
-                    <Popover.Root>
-                      <div className='relative'>
-                        <input
-                          type='text'
-                          value={
-                            birthDate ? format(birthDate, 'dd/MM/yyyy') : ''
-                          }
-                          readOnly
-                          className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          placeholder='DD/MM/AAAA'
-                        />
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        value={
+                          dateInputValue ||
+                          (birthDate ? format(birthDate, 'dd/MM/yyyy') : '')
+                        }
+                        onChange={handleDateInputChange}
+                        className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        placeholder='DD/MM/AAAA'
+                      />
+                      <Popover.Root>
                         <Popover.Trigger asChild>
                           <button
                             type='button'
@@ -734,18 +945,24 @@ export const ProfileForm = () => {
                             <Calendar size={20} />
                           </button>
                         </Popover.Trigger>
-                      </div>
-                      <Popover.Portal>
-                        <Popover.Content className='z-50 p-2 bg-white rounded-lg shadow-lg'>
-                          <DayPicker
-                            mode='single'
-                            selected={birthDate || undefined}
-                            onSelect={handleDateSelect}
-                            className='border-none'
-                          />
-                        </Popover.Content>
-                      </Popover.Portal>
-                    </Popover.Root>
+                        <Popover.Portal>
+                          <Popover.Content className='z-50 p-2 bg-white rounded-lg shadow-lg'>
+                            <DayPicker
+                              mode='single'
+                              selected={birthDate || undefined}
+                              onSelect={handleDateSelect}
+                              className='border-none'
+                              disabled={isDateInFuture}
+                              fromDate={new Date(1900, 0, 1)}
+                              toDate={new Date()}
+                            />
+                          </Popover.Content>
+                        </Popover.Portal>
+                      </Popover.Root>
+                    </div>
+                    {dateError && (
+                      <p className='mt-1 text-xs text-red-600'>{dateError}</p>
+                    )}
                   </div>
                 )}
 
@@ -770,7 +987,7 @@ export const ProfileForm = () => {
                     <Dialog.Trigger asChild>
                       <button className='cursor-pointer flex items-center justify-center w-full px-4 py-2 text-base font-medium text-red-700 transition-colors bg-red-100 border border-red-300 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'>
                         <Trash2 className='w-5 h-5 mr-2' />
-                        Excluir Conta
+                        Excluir conta
                       </button>
                     </Dialog.Trigger>
 
@@ -826,7 +1043,7 @@ export const ProfileForm = () => {
                                   <span>Excluindo...</span>
                                 </>
                               ) : (
-                                'Excluir Conta'
+                                'Excluir conta'
                               )}
                             </button>
                           </div>
@@ -858,7 +1075,7 @@ export const ProfileForm = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit(updateUserProfile)}>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 {/* Renderização condicional com base no tipo de conta */}
                 {user?.role === 'CANDIDATE' ? (
                   // Campos específicos para candidatos
@@ -866,7 +1083,7 @@ export const ProfileForm = () => {
                     <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                       <SelectField
                         id='education'
-                        label='Formação Acadêmica'
+                        label='Formação acadêmica'
                         options={educationOptions}
                         register={register}
                         errors={errors}
@@ -886,7 +1103,7 @@ export const ProfileForm = () => {
 
                       <SelectField
                         id='experienceYears'
-                        label='Experiência Profissional'
+                        label='Experiência profissional'
                         options={experienceOptions}
                         register={register}
                         errors={errors}
@@ -897,7 +1114,7 @@ export const ProfileForm = () => {
                     <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                       <SelectField
                         id='seniority'
-                        label='Nível de Senioridade'
+                        label='Nível de senioridade'
                         options={seniorityOptions}
                         register={register}
                         errors={errors}
@@ -920,14 +1137,26 @@ export const ProfileForm = () => {
                         showCourseField ? 'md:grid-cols-2' : ''
                       }`}
                     >
-                      <TextField
-                        id='expectedSalary'
-                        label='Pretensão Salarial'
-                        placeholder='Ex: R$ 5.000,00'
-                        register={register}
-                        errors={errors}
-                        defaultValue={user?.profile?.expectedSalary}
-                      />
+                      <div className='mb-4'>
+                        <label
+                          htmlFor='expectedSalary'
+                          className='block mb-1 text-sm font-medium text-gray-700'
+                        >
+                          Pretensão salarial
+                        </label>
+                        <input
+                          type='text'
+                          id='expectedSalary'
+                          value={
+                            salaryInputValue ||
+                            user?.profile?.expectedSalary ||
+                            ''
+                          }
+                          onChange={handleSalaryInputChange}
+                          placeholder='Ex: R$ 5.000,00'
+                          className='w-full px-3 py-2 text-gray-900 transition-colors bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        />
+                      </div>
 
                       {/* Campo de curso condicionalmente exibido para formações superiores */}
                       {showCourseField && (
@@ -948,7 +1177,7 @@ export const ProfileForm = () => {
                     <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                       <SelectField
                         id='industrySector'
-                        label='Setor/Indústria'
+                        label='Setor de atuação'
                         options={industrySectorOptions}
                         register={register}
                         errors={errors}
@@ -957,7 +1186,7 @@ export const ProfileForm = () => {
 
                       <SelectField
                         id='companySize'
-                        label='Porte da Empresa'
+                        label='Porte'
                         options={companySizeOptions}
                         register={register}
                         errors={errors}
@@ -966,14 +1195,6 @@ export const ProfileForm = () => {
                     </div>
 
                     <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                      <TextField
-                        id='website'
-                        label='Site da empresa'
-                        placeholder='https://exemplo.com'
-                        register={register}
-                        errors={errors}
-                      />
-
                       <SelectField
                         id='workModel'
                         label='Modelo de trabalho'
@@ -981,6 +1202,15 @@ export const ProfileForm = () => {
                         register={register}
                         errors={errors}
                         defaultValue={user?.profile?.workModel}
+                      />
+
+                      <SelectField
+                        id='workSchedule'
+                        label='Jornada de trabalho'
+                        options={workScheduleOptions}
+                        register={register}
+                        errors={errors}
+                        defaultValue={user?.profile?.workSchedule}
                       />
                     </div>
 
@@ -1001,7 +1231,7 @@ export const ProfileForm = () => {
                     className='block text-sm font-medium text-gray-700 mb-1'
                   >
                     {user?.role === 'CANDIDATE'
-                      ? 'Resumo Profissional'
+                      ? 'Resumo profissional'
                       : 'Sobre a empresa'}{' '}
                     <span className='text-xs text-gray-500'>
                       (máx. 150 caracteres)
@@ -1058,16 +1288,16 @@ export const ProfileForm = () => {
                     {/* Campos exclusivos para empresas */}
                     <MultiSelectField
                       id='hiringAreas'
-                      label='Áreas de contratação'
+                      label='Áreas em contratação'
                       options={hiringAreasOptions}
                       defaultValue={user?.profile?.hiringAreas || []}
                       onChange={handleHiringAreasChange}
-                      helpText='Selecione as áreas em que sua empresa costuma contratar'
+                      helpText='Selecione as áreas em que sua empresa está contratando'
                     />
 
                     <MultiSelectField
                       id='companyTechnologies'
-                      label='Tecnologias utilizadas'
+                      label='Tecnologias mais usadas'
                       options={companyTechnologiesOptions}
                       defaultValue={user?.profile?.companyTechnologies || []}
                       onChange={handleCompanyTechnologiesChange}
@@ -1088,7 +1318,7 @@ export const ProfileForm = () => {
                         <span>Salvando...</span>
                       </>
                     ) : (
-                      'Salvar Alterações'
+                      'Salvar alterações'
                     )}
                   </button>
                 </div>

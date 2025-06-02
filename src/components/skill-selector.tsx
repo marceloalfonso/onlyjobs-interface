@@ -45,7 +45,7 @@ export const SkillSelector = ({
   return (
     <div className='mt-4'>
       <label className='block text-sm font-medium text-gray-700 mb-1'>
-        Habilidades
+        Habilidades principais
       </label>
 
       <div className='relative'>
@@ -81,7 +81,7 @@ export const SkillSelector = ({
               className='flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
             >
               <Plus size={18} />
-              Adicionar Habilidade
+              Adicionar habilidade
             </button>
 
             {/* Skills Dropdown */}

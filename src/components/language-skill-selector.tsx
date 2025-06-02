@@ -58,7 +58,7 @@ export const LanguageSkillSelector = ({
   return (
     <div className='mb-4'>
       <label className='block text-sm font-medium text-gray-700 mb-2'>
-        Idiomas
+        Idiomas de domínio
       </label>
 
       {/* Lista de idiomas adicionados */}
